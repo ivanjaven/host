@@ -137,7 +137,7 @@ export default function DashboardLayout({
                 height={32}
                 className="w-8 h-8"
               />
-              <span className="text-xl font-bold text-gray-900">nginap</span>
+              <span className="text-xl font-extrabold text-gray-900">HoST</span>
             </div>
 
             {/* Search bar */}
