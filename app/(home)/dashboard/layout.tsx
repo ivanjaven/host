@@ -27,7 +27,7 @@ const navigation = [
     ),
   },
   {
-    name: "Room",
+    name: "Rooms",
     href: "/dashboard/rooms",
     icon: (
       <svg

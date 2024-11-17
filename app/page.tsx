@@ -1,10 +1,31 @@
+// app/page.tsx
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import Loading from "@/components/ui/loading";
+
 export default function Home() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold text-gray-900">Host</h1>
-      <p className="mt-2 text-gray-600">
-        Welcome to your hotel management system
-      </p>
-    </div>
-  );
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading) {
+      if (user) {
+        router.push("/dashboard");
+      } else {
+        router.push("/login");
+      }
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loading size="large" />
+      </div>
+    );
+  }
+
+  return null;
 }
