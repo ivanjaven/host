@@ -1,0 +1,73 @@
+// types/room.ts
+export interface Room {
+  id: string;
+  number: string;
+  type: RoomType;
+  price: number;
+  status: RoomStatus;
+  capacity: RoomCapacity;
+  amenities: RoomAmenities;
+  images: RoomImages;
+  supplies: RoomSupplies;
+  floor: number;
+  size: number;
+  maintenanceStatus: MaintenanceStatus;
+  features: string[];
+}
+
+export const ROOM_TYPES = ["Standard", "Deluxe", "Suite"] as const;
+export type RoomType = (typeof ROOM_TYPES)[number];
+
+export type MaintenanceStatus = "Operational" | "Under Maintenance";
+
+export const BED_TYPES = ["Single", "Double", "Queen", "King"] as const;
+export type BedType = (typeof BED_TYPES)[number];
+
+export interface RoomStatus {
+  reservation: "Reserved" | "Not Reserved";
+  housekeeping: "Clean" | "Dirty" | "Cleaning";
+  occupancy: "Vacant" | "Occupied";
+}
+
+export interface RoomCapacity {
+  minGuests: number;
+  maxGuests: number;
+  bedType: BedType;
+}
+
+export interface RoomAmenities {
+  safeBox: boolean;
+  refrigerator: boolean;
+  luggage: boolean;
+  airConditioner: boolean;
+  concierge: boolean;
+  tvCable: boolean;
+  internet: boolean;
+}
+
+export interface RoomImages {
+  primary: string;
+  gallery: string[];
+}
+
+export interface RoomSupplies {
+  toiletries: {
+    toilet_paper: number;
+    shampoo: number;
+    soap: number;
+    toothbrush: number;
+    toothpaste: number;
+  };
+  bedding: {
+    towels: number;
+    bedsheets: number;
+    pillowcases: number;
+    blankets: number;
+  };
+  refreshments: {
+    water_bottles: number;
+    coffee_sachets: number;
+    tea_bags: number;
+    sugar_packets: number;
+  };
+}
