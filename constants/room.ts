@@ -9,12 +9,23 @@ export const ROOM_FEATURES = [
   "Corner Room",
   "City View",
   "High Floor",
+  "Ocean View",
+  "Mountain View",
+  "Balcony",
+  "Private Pool",
+  "Terrace",
+  "Garden Access",
+  "Executive Lounge Access",
+  "Club Level",
+  "Soundproof",
+  "Jacuzzi",
 ] as const;
 
 export const DEFAULT_ROOM_DATA: Omit<Room, "id"> = {
   number: "",
   type: "Standard" as RoomType,
   price: 0,
+  description: "",
   status: {
     reservation: "Not Reserved",
     housekeeping: "Clean",
@@ -27,12 +38,16 @@ export const DEFAULT_ROOM_DATA: Omit<Room, "id"> = {
   },
   amenities: {
     safeBox: false,
-    refrigerator: false,
+    refrigerator: true,
     luggage: false,
-    airConditioner: false,
+    airConditioner: true,
     concierge: false,
     tvCable: false,
-    internet: false,
+    internet: true,
+    coffeeMaker: false,
+    workspace: false,
+    hairDryer: false,
+    bathtub: false,
   },
   images: {
     primary: "",

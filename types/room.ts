@@ -15,6 +15,7 @@ export interface Room {
   features: string[];
   reviews: Review[];
   averageRating: number;
+  description: string;
 }
 
 export const ROOM_TYPES = ["Standard", "Deluxe", "Suite"] as const;
@@ -45,6 +46,10 @@ export interface RoomAmenities {
   concierge: boolean;
   tvCable: boolean;
   internet: boolean;
+  bathtub: boolean;
+  hairDryer: boolean;
+  coffeeMaker: boolean;
+  workspace: boolean;
 }
 
 export interface RoomImages {

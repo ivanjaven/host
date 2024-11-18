@@ -1,14 +1,21 @@
 // components/rooms/RoomCard.tsx
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Room } from "@/types/room";
 
 interface RoomCardProps {
   room: Room;
+  isAdmin?: boolean;
 }
 
 export function RoomCard({ room }: RoomCardProps) {
+  const router = useRouter();
+
   return (
-    <div className="group">
+    <div
+      className="group cursor-pointer"
+      onClick={() => router.push(`/dashboard/rooms/${room.id}`)}
+    >
       {/* Image Container */}
       <div className="relative aspect-[6/4] rounded-2xl overflow-hidden mb-4">
         <Image

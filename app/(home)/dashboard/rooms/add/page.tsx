@@ -238,6 +238,35 @@ export default function AddRoomPage() {
         </FormSection>
 
         <FormSection
+          title="Room Description"
+          icon={
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h7"
+              />
+            </svg>
+          }
+        >
+          <textarea
+            value={formData.description}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
+            placeholder="Enter room description..."
+            className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            rows={4}
+          />
+        </FormSection>
+
+        <FormSection
           title="Room Capacity"
           icon={
             <svg
