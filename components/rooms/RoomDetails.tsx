@@ -65,7 +65,7 @@ export function RoomDetails({ room, isAdmin = false }: RoomDetailsProps) {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         {/* Left Column - Gallery */}
         <RoomGallery
           primaryImage={room.images.primary}
@@ -75,11 +75,11 @@ export function RoomDetails({ room, isAdmin = false }: RoomDetailsProps) {
         {/* Right Column - Details */}
         <div className="space-y-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-extrabold text-gray-900">
               {room.type} {room.number}
             </h1>
             <div className="flex items-center gap-4 mt-2">
-              <p className="text-2xl font-semibold text-primary">
+              <p className="text-xl font-semibold text-gray-600">
                 ₱{room.price.toLocaleString()}
               </p>
               <span className="text-sm text-gray-500">/night</span>
@@ -89,10 +89,12 @@ export function RoomDetails({ room, isAdmin = false }: RoomDetailsProps) {
           <RoomOverview room={room} />
 
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-3">
+            <h2 className="text-lg font-bold text-gray-900 mb-3">
               Description
             </h2>
-            <p className="text-gray-600 leading-relaxed">{room.description}</p>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              {room.description}
+            </p>
           </div>
 
           <RoomFeatures features={room.features} />

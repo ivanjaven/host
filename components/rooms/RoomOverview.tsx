@@ -10,7 +10,7 @@ export function RoomOverview({ room }: RoomOverviewProps) {
     {
       icon: (
         <svg
-          className="w-5 h-5"
+          className="w-4 h-4"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -29,7 +29,7 @@ export function RoomOverview({ room }: RoomOverviewProps) {
     {
       icon: (
         <svg
-          className="w-5 h-5"
+          className="w-4 h-4"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -48,7 +48,7 @@ export function RoomOverview({ room }: RoomOverviewProps) {
     {
       icon: (
         <svg
-          className="w-5 h-5"
+          className="w-4 h-4"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -67,7 +67,7 @@ export function RoomOverview({ room }: RoomOverviewProps) {
     {
       icon: (
         <svg
-          className="w-5 h-5"
+          className="w-4 h-4"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -86,7 +86,7 @@ export function RoomOverview({ room }: RoomOverviewProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-6">
+    <div className="grid grid-cols-2 gap-7">
       {details.map((detail, index) => (
         <div key={index} className="flex items-center gap-3">
           <div className="p-2 bg-gray-100 rounded-lg text-gray-600">
