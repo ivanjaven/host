@@ -5,28 +5,44 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Room, RoomType } from "@/types/room";
 import { RoomCard } from "@/components/rooms/RoomCard";
-import { RoomFilters } from "@/components/rooms/RoomFilters";
+import { SearchBar } from "@/components/rooms/SearchBar";
 import Loading from "@/components/ui/loading";
+
+export type Filters = {
+  type: RoomType | "All";
+  priceRange: string;
+  floor: string;
+  search: string;
+};
+
+const initialFilters: Filters = {
+  type: "All",
+  priceRange: "₱1,000 - ₱50,000",
+  floor: "All Floors",
+  search: "",
+};
 
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedType, setSelectedType] = useState<RoomType | "All">("All");
-  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
+  const [filters, setFilters] = useState<Filters>(initialFilters);
 
+  // Fetch rooms
   useEffect(() => {
-    let mounted = true;
-
     const fetchRooms = async () => {
       try {
+        console.log("Fetching rooms...");
         const roomsRef = collection(db, "rooms");
         const snapshot = await getDocs(roomsRef);
-
-        if (!mounted) return;
+        console.log(
+          "Raw snapshot:",
+          snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        );
 
         const roomsData = snapshot.docs.map((doc) => {
           const data = doc.data();
+          console.log("Processing room:", { id: doc.id, ...data });
           return {
             id: doc.id,
             ...data,
@@ -35,33 +51,82 @@ export default function RoomsPage() {
           } as Room;
         });
 
+        console.log("Processed rooms:", roomsData);
         setRooms(roomsData);
       } catch (error) {
         console.error("Error fetching rooms:", error);
-        if (mounted) {
-          setError("Failed to load rooms");
-        }
+        setError("Failed to load rooms");
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
     fetchRooms();
-
-    return () => {
-      mounted = false;
-    };
   }, []);
 
+  // Log rooms whenever they change
+  useEffect(() => {
+    console.log("Current rooms:", rooms);
+  }, [rooms]);
+
+  // Filter rooms based on all filters
   const filteredRooms = rooms.filter((room) => {
-    const matchesType = selectedType === "All" || room.type === selectedType;
+    console.log("Room being filtered:", {
+      number: room.number,
+      type: room.type,
+      price: room.price,
+      floor: room.floor,
+    });
+
+    // Type filter
+    const matchesType = filters.type === "All" || room.type === filters.type;
+    console.log("Type filter:", {
+      roomType: room.type,
+      filterType: filters.type,
+      matchesType,
+    });
+
+    // Price range filter
+    // const [minPrice, maxPrice] = filters.priceRange
+    //   .replace("₱", "")
+    //   .split(" - ")
+    //   .map((price) => parseInt(price.replace(/,/g, "")));
+    // const matchesPrice = room.price >= minPrice && room.price <= maxPrice;
+    // console.log("Price filter:", {
+    //   roomPrice: room.price,
+    //   minPrice,
+    //   maxPrice,
+    //   matchesPrice,
+    // });
+
+    // Floor filter
+    const matchesFloor =
+      filters.floor === "All Floors" || room.floor === parseInt(filters.floor);
+    console.log("Floor filter:", {
+      roomFloor: room.floor,
+      filterFloor: filters.floor,
+      matchesFloor,
+    });
+
+    // Search filter
+    const searchTerm = filters.search.toLowerCase().trim();
     const matchesSearch =
-      room.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      room.type.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesType && matchesSearch;
+      !searchTerm ||
+      room.number.toLowerCase().includes(searchTerm) ||
+      room.type.toLowerCase().includes(searchTerm) ||
+      `${room.type} ${room.number}`.toLowerCase().includes(searchTerm);
+    console.log("Search filter:", { searchTerm, matchesSearch });
+
+    const matches = matchesType && matchesFloor && matchesSearch;
+    console.log("Final result:", matches);
+
+    return matches;
   });
+
+  // Log filtered rooms
+  useEffect(() => {
+    console.log("Filtered rooms:", filteredRooms);
+  }, [filteredRooms]);
 
   if (loading) {
     return (
@@ -90,11 +155,13 @@ export default function RoomsPage() {
         </button>
       </div>
 
-      <RoomFilters
-        selectedType={selectedType}
-        onTypeChange={setSelectedType}
-        onSearch={setSearchQuery}
-      />
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+        <SearchBar
+          filters={filters}
+          onFilterChange={setFilters}
+          onReset={() => setFilters(initialFilters)}
+        />
+      </div>
 
       {error && (
         <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg">
@@ -102,7 +169,7 @@ export default function RoomsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-10">
         {filteredRooms.map((room) => (
           <RoomCard key={room.id} room={room} />
         ))}
