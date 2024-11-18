@@ -61,7 +61,7 @@ export function Input({
           min={min}
           placeholder={placeholder}
           className={`
-            w-full px-2 py-1.5
+            w-full px-2 py-2
             text-xs text-gray-900 font-medium
             bg-white border rounded-lg
             focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
@@ -71,7 +71,7 @@ export function Input({
           `}
         />
         {suffix && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-gray-400 font-medium h-full">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-gray-400 font-medium h-full text-xs">
             {suffix}
           </div>
         )}

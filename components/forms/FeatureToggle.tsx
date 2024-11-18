@@ -17,7 +17,7 @@ export function FeatureToggle({
           key={feature}
           type="button"
           onClick={() => onToggle(feature)}
-          className={`px-4 py-2 rounded-full text-sm font-medium ${
+          className={`px-4 py-2 rounded-full text-xs font-medium ${
             selectedFeatures.includes(feature)
               ? "bg-primary text-white"
               : "bg-gray-100 text-gray-600"

@@ -24,7 +24,7 @@ export function Select<T extends string>({
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
         className={`
-          w-full px-2 py-1.5
+          w-full px-2 py-2
           text-xs text-gray-900 font-medium
           bg-white border border-gray-200 rounded-lg
           focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
