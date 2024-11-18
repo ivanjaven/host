@@ -13,6 +13,8 @@ export interface Room {
   size: number;
   maintenanceStatus: MaintenanceStatus;
   features: string[];
+  reviews: Review[];
+  averageRating: number;
 }
 
 export const ROOM_TYPES = ["Standard", "Deluxe", "Suite"] as const;
@@ -70,4 +72,9 @@ export interface RoomSupplies {
     tea_bags: number;
     sugar_packets: number;
   };
+}
+
+export interface Review {
+  reviewerId: string;
+  value: number; // 1-5 rating
 }

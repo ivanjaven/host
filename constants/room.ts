@@ -63,4 +63,6 @@ export const DEFAULT_ROOM_DATA: Omit<Room, "id"> = {
   size: 0,
   maintenanceStatus: "Operational",
   features: [],
+  reviews: [],
+  averageRating: 0,
 };

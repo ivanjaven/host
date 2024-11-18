@@ -113,6 +113,8 @@ export default function AddRoomPage() {
           housekeeping: "Clean" as const,
           occupancy: "Vacant" as const,
         },
+        reviews: [],
+        averageRating: 0,
       };
 
       // Save the document with the pre-generated ID

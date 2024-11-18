@@ -203,7 +203,7 @@ export default function DashboardLayout({
             {/* Profile */}
             <div className="flex items-center gap-3">
               <Image
-                src="/images/avatar.jpg"
+                src="/images/avatar.png"
                 alt="Profile"
                 width={36}
                 height={36}
