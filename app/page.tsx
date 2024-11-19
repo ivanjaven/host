@@ -140,10 +140,10 @@ export default function LandingPage() {
 
       {/* Floating Book Now Button */}
       <motion.button
-        onClick={() => router.push("/booking")}
+        onClick={() => router.push("/rooms")}
         className="fixed bottom-8 md:bottom-12 right-8 md:right-12 z-50 px-6 md:px-8 py-3 md:py-4
-          bg-black/90 text-white text-xs md:text-sm rounded-full shadow-xl backdrop-blur-sm
-          hover:bg-black transition-all duration-300"
+    bg-black/90 text-white text-xs md:text-sm rounded-full shadow-xl backdrop-blur-sm
+    hover:bg-black transition-all duration-300"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         initial={{ opacity: 0, y: 20 }}

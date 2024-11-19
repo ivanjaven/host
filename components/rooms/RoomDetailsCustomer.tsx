@@ -1,4 +1,3 @@
-// components/rooms/RoomDetailsUser.tsx
 import { useRouter } from "next/navigation";
 import { Room } from "@/types/room";
 import { RoomFeatures } from "./RoomFeatures";
@@ -10,7 +9,7 @@ interface RoomDetailsUserProps {
   room: Room;
 }
 
-export function RoomDetailsUser({ room }: RoomDetailsUserProps) {
+export function RoomDetailsCustomer({ room }: RoomDetailsUserProps) {
   const router = useRouter();
 
   return (
