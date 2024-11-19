@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { db, storage } from "@/lib/firebase";
-import { collection, doc, setDoc } from "firebase/firestore";
+import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Room, RoomType, BedType } from "@/types/room";
 import { FormSection } from "@/components/forms/FormSection";
@@ -102,7 +102,7 @@ export default function AddRoomPage() {
 
       const roomData = {
         ...formData,
-        id: newRoomId, // Set the ID in the metadata
+        id: newRoomId,
         images: {
           primary: primaryImageUrl,
           gallery: galleryUrls,
@@ -115,6 +115,8 @@ export default function AddRoomPage() {
         },
         reviews: [],
         averageRating: 0,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
       };
 
       // Save the document with the pre-generated ID

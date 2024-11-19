@@ -1,3 +1,5 @@
+import { Timestamp, FieldValue } from "firebase/firestore";
+
 // types/room.ts
 export interface Room {
   id: string;
@@ -16,6 +18,8 @@ export interface Room {
   reviews: Review[];
   averageRating: number;
   description: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export const ROOM_TYPES = ["Standard", "Deluxe", "Suite"] as const;
@@ -25,6 +29,11 @@ export type MaintenanceStatus = "Operational" | "Under Maintenance";
 
 export const BED_TYPES = ["Single", "Double", "Queen", "King"] as const;
 export type BedType = (typeof BED_TYPES)[number];
+
+export type RoomCreate = Omit<Room, "id" | "created_at" | "updated_at"> & {
+  created_at: FieldValue;
+  updated_at: FieldValue;
+};
 
 export interface RoomStatus {
   reservation: "Reserved" | "Not Reserved";

@@ -109,7 +109,7 @@ export default function DashboardPage() {
     <div className="p-10">
       {/* Header */}
       <div className="mb-10">
-        <h1 className="text-2xl font-bold text-gray-900">Yellow Star Hotel</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Hotel Status</h1>
       </div>
 
       {/* Stats Cards */}
