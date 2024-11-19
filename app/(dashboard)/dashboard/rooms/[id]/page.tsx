@@ -7,20 +7,26 @@ import { db } from "@/lib/firebase";
 import { Room } from "@/types/room";
 import { RoomDetails } from "@/components/rooms/RoomDetails";
 import Loading from "@/components/ui/loading";
+import * as React from "react";
 
-export default function RoomDetailsPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default function RoomDetailsPage({ params }: PageProps) {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Use React.use to handle the Promise
+  const { id } = React.use(params);
+
   useEffect(() => {
     const fetchRoom = async () => {
       try {
-        const roomDoc = await getDoc(doc(db, "rooms", params.id));
+        const roomDoc = await getDoc(doc(db, "rooms", id));
         if (roomDoc.exists()) {
           setRoom({ id: roomDoc.id, ...roomDoc.data() } as Room);
         } else {
@@ -35,7 +41,7 @@ export default function RoomDetailsPage({
     };
 
     fetchRoom();
-  }, [params.id, router]);
+  }, [id, router]);
 
   if (loading) {
     return (
@@ -53,5 +59,5 @@ export default function RoomDetailsPage({
     );
   }
 
-  return <RoomDetails room={room} isAdmin />;
+  return <RoomDetails room={room} />;
 }

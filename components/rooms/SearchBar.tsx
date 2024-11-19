@@ -1,7 +1,7 @@
 // components/rooms/SearchBar.tsx
 import { FilterInput } from "./FilterInput";
 import { ROOM_TYPES } from "@/types/room";
-import { Filters } from "@/app/(home)/dashboard/rooms/page";
+import { Filters } from "@/app/(dashboard)/dashboard/rooms/page";
 
 interface SearchBarProps {
   filters: Filters;

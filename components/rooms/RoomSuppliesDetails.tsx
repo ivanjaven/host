@@ -67,13 +67,13 @@ export function RoomSuppliesDetails({ supplies }: RoomSuppliesDetailsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
       {categories.map((category) => (
         <div
           key={category.title}
-          className="bg-white rounded-xl p-6 border border-gray-100 hover:border-gray-200 transition-colors"
+          className="bg-white rounded-xl p-4 md:p-6 border border-gray-100 hover:border-gray-200 transition-colors"
         >
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-4 md:mb-6">
             <div className="p-1.5 bg-gray-50 rounded-lg text-gray-400">
               {category.icon}
             </div>
@@ -82,20 +82,42 @@ export function RoomSuppliesDetails({ supplies }: RoomSuppliesDetailsProps) {
             </h3>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             {Object.entries(category.items).map(([item, quantity]) => (
               <div
                 key={item}
-                className="flex items-center justify-between py-1.5"
+                className="flex items-center justify-between py-1.5 group hover:bg-gray-50 rounded-lg px-2 transition-colors"
               >
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 group-hover:text-gray-700 transition-colors">
                   {item
                     .replace(/_/g, " ")
                     .replace(/\b\w/g, (l) => l.toUpperCase())}
                 </span>
-                <span className="text-xs font-medium text-gray-700">
-                  {quantity}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
+                    {quantity}
+                  </span>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      className="p-1 hover:bg-gray-200 rounded-full"
+                      title="Edit quantity"
+                    >
+                      <svg
+                        className="w-3 h-3 text-gray-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
