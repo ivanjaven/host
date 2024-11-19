@@ -1,10 +1,10 @@
-// app/dashboard/rooms/add/page.tsx
+// app/dashboard/rooms/[id]/edit/page.tsx
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { db, storage } from "@/lib/firebase";
-import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage } from "@/lib/firebase";
 import { Room, RoomType, BedType } from "@/types/room";
 import { FormSection } from "@/components/forms/FormSection";
 import { Input } from "@/components/forms/Input";
@@ -13,25 +13,54 @@ import { Checkbox } from "@/components/forms/Checkbox";
 import { ImageUpload } from "@/components/forms/ImageUpload";
 import { RoomSupplies } from "@/components/forms/RoomSupplies";
 import { FeatureToggle } from "@/components/forms/FeatureToggle";
-import {
-  ROOM_TYPES,
-  BED_TYPES,
-  ROOM_FEATURES,
-  DEFAULT_ROOM_DATA,
-} from "@/constants/room";
+import Loading from "@/components/ui/loading";
+import { ROOM_TYPES, BED_TYPES, ROOM_FEATURES } from "@/constants/room";
+import * as React from "react";
 
-export default function AddRoomPage() {
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default function EditRoomPage({ params }: PageProps) {
+  const { id } = React.use(params);
+
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [room, setRoom] = useState<Room | null>(null);
   const [primaryImage, setPrimaryImage] = useState<File | null>(null);
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
   const [primaryImagePreview, setPrimaryImagePreview] = useState<string>("");
-  const [formData, setFormData] =
-    useState<Omit<Room, "id" | "created_at" | "updated_at">>(DEFAULT_ROOM_DATA);
+  const [formData, setFormData] = useState<Omit<Room, "id">>(room as Room);
+
+  // Fetch room data
+  useEffect(() => {
+    const fetchRoom = async () => {
+      try {
+        const roomDoc = await getDoc(doc(db, "rooms", id));
+        if (roomDoc.exists()) {
+          const roomData = { id: roomDoc.id, ...roomDoc.data() } as Room;
+          setRoom(roomData);
+          setFormData(roomData);
+          setPrimaryImagePreview(roomData.images.primary);
+        } else {
+          router.push("/dashboard/rooms");
+        }
+      } catch (error) {
+        console.error("Error fetching room:", error);
+        setError("Failed to load room data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRoom();
+  }, [id, router]);
 
   const validateForm = (): string | null => {
-    // Basic Information validation
     if (!formData.number.trim()) {
       return "Room number is required";
     }
@@ -41,23 +70,14 @@ export default function AddRoomPage() {
     if (!formData.size || formData.size <= 0) {
       return "Valid room size is required";
     }
-
-    // Room Capacity validation
     if (formData.capacity.minGuests <= 0) {
       return "Minimum guests must be greater than 0";
     }
     if (formData.capacity.maxGuests <= formData.capacity.minGuests) {
       return "Maximum guests must be greater than minimum guests";
     }
-
-    // Room Status validation
     if (formData.price <= 0) {
       return "Valid price is required";
-    }
-
-    // Primary Image validation
-    if (!primaryImage) {
-      return "Primary image is required";
     }
 
     return null;
@@ -71,65 +91,50 @@ export default function AddRoomPage() {
       return;
     }
 
-    setIsLoading(true);
+    setIsSaving(true);
     setError("");
 
     try {
-      if (!primaryImage) {
-        throw new Error("Primary image is required");
+      // Handle image uploads if new images are selected
+      const updatedImages = { ...formData.images };
+
+      if (primaryImage) {
+        const primaryImageRef = ref(
+          storage,
+          `rooms/${Date.now()}_${primaryImage.name}`
+        );
+        await uploadBytes(primaryImageRef, primaryImage);
+        updatedImages.primary = await getDownloadURL(primaryImageRef);
       }
 
-      // Upload primary image
-      const primaryImageRef = ref(
-        storage,
-        `rooms/${Date.now()}_${primaryImage.name}`
-      );
-      await uploadBytes(primaryImageRef, primaryImage);
-      const primaryImageUrl = await getDownloadURL(primaryImageRef);
+      if (galleryImages.length > 0) {
+        const galleryUrls = await Promise.all(
+          galleryImages.map(async (image) => {
+            const imageRef = ref(storage, `rooms/${Date.now()}_${image.name}`);
+            await uploadBytes(imageRef, image);
+            return getDownloadURL(imageRef);
+          })
+        );
+        updatedImages.gallery = [...formData.images.gallery, ...galleryUrls];
+      }
 
-      // Upload gallery images
-      const galleryUrls = await Promise.all(
-        galleryImages.map(async (image) => {
-          const imageRef = ref(storage, `rooms/${Date.now()}_${image.name}`);
-          await uploadBytes(imageRef, image);
-          return getDownloadURL(imageRef);
-        })
-      );
-
-      // Create a new document reference to get the ID
-      const roomsRef = collection(db, "rooms");
-      const newRoomRef = doc(roomsRef);
-      const newRoomId = newRoomRef.id;
-
-      const roomData = {
+      // Update room document
+      const roomRef = doc(db, "rooms", id);
+      const updateData = {
         ...formData,
-        id: newRoomId,
-        images: {
-          primary: primaryImageUrl,
-          gallery: galleryUrls,
-        },
-        status: {
-          ...formData.status,
-          reservation: "Not Reserved" as const,
-          housekeeping: "Clean" as const,
-          occupancy: "Vacant" as const,
-        },
-        reviews: [],
-        averageRating: 0,
-        created_at: serverTimestamp(),
+        images: updatedImages,
         updated_at: serverTimestamp(),
       };
 
-      // Save the document with the pre-generated ID
-      await setDoc(newRoomRef, roomData);
+      await updateDoc(roomRef, updateData);
 
-      router.push("/dashboard/rooms");
+      router.push(`/dashboard/rooms/${id}`);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      console.error("Error adding room:", error);
+      console.error("Error updating room:", error);
       setError(error.message);
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -150,13 +155,29 @@ export default function AddRoomPage() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loading size="large" />
+      </div>
+    );
+  }
+
+  if (!room) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <p className="text-lg text-gray-600">Room not found</p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Add New Room</h1>
+          <h1 className="text-xl font-bold text-gray-900">Edit Room</h1>
           <p className="text-xs text-gray-500">
-            Create a new room with complete details
+            Update room information and details
           </p>
         </div>
         <div className="flex gap-2">
@@ -168,10 +189,10 @@ export default function AddRoomPage() {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={isSaving}
             className="px-3 py-1.5 text-xs font-medium text-white bg-primary border border-transparent rounded-lg hover:bg-primary/90 disabled:opacity-50"
           >
-            {isLoading ? "Adding..." : "Add Room"}
+            {isSaving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>
@@ -181,7 +202,8 @@ export default function AddRoomPage() {
           {error}
         </div>
       )}
-      <div className="space-y-6 ">
+
+      <div className="space-y-6">
         <FormSection
           title="Basic Information"
           icon={
@@ -240,6 +262,7 @@ export default function AddRoomPage() {
           </div>
         </FormSection>
 
+        {/* Reuse all the other form sections from the add page */}
         <FormSection
           title="Room Description"
           icon={
@@ -430,6 +453,7 @@ export default function AddRoomPage() {
             }}
           />
         </FormSection>
+
         <FormSection
           title="Amenities"
           icon={
@@ -489,7 +513,6 @@ export default function AddRoomPage() {
                 label="Primary Image"
                 onChange={handlePrimaryImageChange}
                 preview={primaryImagePreview}
-                required
               />
               <p className="text-xs text-gray-500">
                 Main display image for the room
@@ -497,13 +520,64 @@ export default function AddRoomPage() {
             </div>
             <div className="space-y-2">
               <ImageUpload
-                label="Gallery Images"
+                label="Add Gallery Images"
                 onChange={handleGalleryImagesChange}
                 multiple
               />
               <p className="text-xs text-gray-500">
                 Additional room photos (optional)
               </p>
+              {/* Display existing gallery images */}
+              {formData.images.gallery.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-xs font-medium text-gray-600 mb-2">
+                    Existing Gallery Images
+                  </h4>
+                  <div className="grid grid-cols-4 gap-2">
+                    {formData.images.gallery.map((url, index) => (
+                      <div
+                        key={index}
+                        className="relative aspect-square rounded-lg overflow-hidden group"
+                      >
+                        <img
+                          src={url}
+                          alt={`Gallery ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={() => {
+                            const newGallery = formData.images.gallery.filter(
+                              (_, i) => i !== index
+                            );
+                            setFormData({
+                              ...formData,
+                              images: {
+                                ...formData.images,
+                                gallery: newGallery,
+                              },
+                            });
+                          }}
+                          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                        >
+                          <svg
+                            className="w-6 h-6 text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </FormSection>
