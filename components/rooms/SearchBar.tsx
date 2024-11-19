@@ -42,18 +42,14 @@ export function SearchBar({
           />
         </div>
 
-        {/* Price Range Filter */}
+        {/* Guest Capacity Filter */}
         <div className="w-48">
           <FilterInput
-            label="Price Range"
-            value={filters.priceRange}
-            placeholder="Select price range"
-            options={[
-              "₱1,000 - ₱50,000",
-              "₱50,000 - ₱100,000",
-              "₱100,000 - ₱200,000",
-            ]}
-            onChange={(value) => handleFilterChange("priceRange", value)}
+            label="Guest Capacity"
+            value={filters.guestCapacity}
+            placeholder="Select capacity"
+            options={["All", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]}
+            onChange={(value) => handleFilterChange("guestCapacity", value)}
           />
         </div>
 

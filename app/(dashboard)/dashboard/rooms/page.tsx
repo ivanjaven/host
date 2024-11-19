@@ -10,14 +10,14 @@ import Loading from "@/components/ui/loading";
 
 export type Filters = {
   type: RoomType | "All";
-  priceRange: string;
+  guestCapacity: string;
   floor: string;
   search: string;
 };
 
 const initialFilters: Filters = {
   type: "All",
-  priceRange: "₱1,000 - ₱50,000",
+  guestCapacity: "All",
   floor: "All Floors",
   search: "",
 };
@@ -86,18 +86,11 @@ export default function RoomsPage() {
       matchesType,
     });
 
-    // Price range filter
-    // const [minPrice, maxPrice] = filters.priceRange
-    //   .replace("₱", "")
-    //   .split(" - ")
-    //   .map((price) => parseInt(price.replace(/,/g, "")));
-    // const matchesPrice = room.price >= minPrice && room.price <= maxPrice;
-    // console.log("Price filter:", {
-    //   roomPrice: room.price,
-    //   minPrice,
-    //   maxPrice,
-    //   matchesPrice,
-    // });
+    // Guest capacity filter
+    const matchesCapacity =
+      filters.guestCapacity === "All" ||
+      (room.capacity.minGuests <= parseInt(filters.guestCapacity) &&
+        room.capacity.maxGuests >= parseInt(filters.guestCapacity));
 
     // Floor filter
     const matchesFloor =
@@ -117,7 +110,8 @@ export default function RoomsPage() {
       `${room.type} ${room.number}`.toLowerCase().includes(searchTerm);
     console.log("Search filter:", { searchTerm, matchesSearch });
 
-    const matches = matchesType && matchesFloor && matchesSearch;
+    const matches =
+      matchesType && matchesFloor && matchesSearch && matchesCapacity;
     console.log("Final result:", matches);
 
     return matches;
