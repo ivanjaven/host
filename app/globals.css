@@ -18,4 +18,31 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+  @apply scroll-smooth;
+}
+
+@layer utilities {
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+  .container {
+    @apply max-w-7xl mx-auto;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+* {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
