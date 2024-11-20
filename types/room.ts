@@ -3,6 +3,7 @@ import { Timestamp, FieldValue } from "firebase/firestore";
 // types/room.ts
 export interface Room {
   id: string;
+  name: string;
   number: string;
   type: RoomType;
   price: number;

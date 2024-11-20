@@ -6,15 +6,16 @@ interface ImageUploadProps {
   required?: boolean;
   multiple?: boolean;
   preview?: string;
+  nextImage?: boolean;
   onChange: (files: FileList | null) => void;
 }
 
-// components/forms/ImageUpload.tsx
 export function ImageUpload({
   label,
   required,
   multiple,
   preview,
+  nextImage,
   onChange,
 }: ImageUploadProps) {
   return (
@@ -29,26 +30,28 @@ export function ImageUpload({
         required={required}
         multiple={multiple}
         onChange={(e) => onChange(e.target.files)}
-        className="
-          w-full px-3 py-2
-          text-xs text-gray-900 font-medium
-          bg-white border border-gray-200 rounded-lg
+        className="w-full px-3 py-2 text-xs text-gray-900 font-medium bg-white border border-gray-200 rounded-lg
           focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
-          file:mr-3 file:py-1.5 file:px-3
-          file:rounded-lg file:border-0
-          file:text-xs file:font-medium
-          file:bg-primary file:text-white
-          hover:file:bg-primary/90
-        "
+          file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0
+          file:text-xs file:font-medium file:bg-primary file:text-white
+          hover:file:bg-primary/90"
       />
-      {preview && (
+      {preview && nextImage && (
+        <div className="mt-3 relative aspect-square w-full">
+          <Image
+            src={preview}
+            alt="Preview"
+            fill
+            className="rounded-lg object-cover"
+          />
+        </div>
+      )}
+      {preview && !nextImage && (
         <div className="mt-3">
           <Image
             src={preview}
             alt="Preview"
-            width={200}
-            height={200}
-            className="rounded-lg object-cover"
+            className="w-full h-auto rounded-lg"
           />
         </div>
       )}

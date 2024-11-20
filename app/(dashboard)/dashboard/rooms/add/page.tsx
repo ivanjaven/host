@@ -2,8 +2,9 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { db, storage } from "@/lib/firebase";
+import { auth, db, storage } from "@/lib/firebase";
 import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { getDatabase, ref as rtdbRef, set } from "firebase/database";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Room, RoomType, BedType } from "@/types/room";
 import { FormSection } from "@/components/forms/FormSection";
@@ -27,6 +28,7 @@ export default function AddRoomPage() {
   const [primaryImage, setPrimaryImage] = useState<File | null>(null);
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
   const [primaryImagePreview, setPrimaryImagePreview] = useState<string>("");
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [formData, setFormData] =
     useState<Omit<Room, "id" | "created_at" | "updated_at">>(DEFAULT_ROOM_DATA);
 
@@ -104,15 +106,11 @@ export default function AddRoomPage() {
       const roomData = {
         ...formData,
         id: newRoomId,
+        name: `${formData.type}${formData.number}`,
+        features: formData.features,
         images: {
           primary: primaryImageUrl,
           gallery: galleryUrls,
-        },
-        status: {
-          ...formData.status,
-          reservation: "Not Reserved" as const,
-          housekeeping: "Clean" as const,
-          occupancy: "Vacant" as const,
         },
         reviews: [],
         averageRating: 0,
@@ -120,15 +118,27 @@ export default function AddRoomPage() {
         updated_at: serverTimestamp(),
       };
 
-      // Save the document with the pre-generated ID
       await setDoc(newRoomRef, roomData);
+
+      // Save status to Realtime DB
+      const rtdb = getDatabase();
+      await set(
+        rtdbRef(rtdb, `roomStatuses/${formData.type}${formData.number}`),
+        {
+          maintenanceStatus: "Operational",
+          occupancy: "Vacant",
+          reservation: "Not Reserved",
+          housekeeping: "Clean",
+          lastUpdated: Date.now(),
+          updatedBy: auth.currentUser?.uid || "system",
+        }
+      );
 
       router.push("/dashboard/rooms");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Error adding room:", error);
       setError(error.message);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -146,7 +156,32 @@ export default function AddRoomPage() {
 
   const handleGalleryImagesChange = (files: FileList | null) => {
     if (files) {
-      setGalleryImages(Array.from(files));
+      const newFiles = Array.from(files);
+      setGalleryImages((prev) => [...prev, ...newFiles]);
+
+      newFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setGalleryPreviews((prev) => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeGalleryImage = (index: number) => {
+    const newImages = galleryImages.filter((_, i) => i !== index);
+    const newPreviews = galleryPreviews.filter((_, i) => i !== index);
+
+    setGalleryImages(newImages);
+    setGalleryPreviews(newPreviews);
+
+    // Reset the file input
+    const fileInput = document.querySelector(
+      'input[type="file"][multiple]'
+    ) as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = "";
     }
   };
 
@@ -205,15 +240,28 @@ export default function AddRoomPage() {
               label="Room Number"
               type="text"
               value={formData.number}
-              onChange={(value) =>
-                setFormData({ ...formData, number: value as string })
-              }
+              onChange={(value) => {
+                const newNumber = value as string;
+                setFormData({
+                  ...formData,
+                  number: newNumber,
+                  // Create combined name
+                  name: `${formData.type} ${newNumber}`,
+                });
+              }}
               required
             />
             <Select<RoomType>
               label="Room Type"
               value={formData.type}
-              onChange={(value) => setFormData({ ...formData, type: value })}
+              onChange={(value) => {
+                setFormData({
+                  ...formData,
+                  type: value,
+                  // Update name when type changes
+                  name: `${value} ${formData.number}`,
+                });
+              }}
               options={ROOM_TYPES}
               required
             />
@@ -235,6 +283,17 @@ export default function AddRoomPage() {
                 setFormData({ ...formData, size: Number(value) })
               }
               min={1}
+              required
+            />
+            <Input
+              label="Price"
+              type="number"
+              value={formData.price || ""}
+              onChange={(value) =>
+                setFormData({ ...formData, price: Number(value) })
+              }
+              min={1}
+              suffix="/night"
               required
             />
           </div>
@@ -330,78 +389,6 @@ export default function AddRoomPage() {
         </FormSection>
 
         <FormSection
-          title="Room Status"
-          icon={
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          }
-        >
-          <div className="grid grid-cols-4 gap-4">
-            <Select
-              label="Maintenance"
-              value={formData.maintenanceStatus}
-              onChange={(value) =>
-                setFormData({ ...formData, maintenanceStatus: value })
-              }
-              options={["Operational", "Under Maintenance"]}
-              required
-            />
-            <Select
-              label="Housekeeping"
-              value={formData.status.housekeeping}
-              onChange={(value) =>
-                setFormData({
-                  ...formData,
-                  status: {
-                    ...formData.status,
-                    housekeeping: value as "Clean" | "Dirty" | "Cleaning",
-                  },
-                })
-              }
-              options={["Clean", "Dirty", "Cleaning"]}
-              required
-            />
-            <Select
-              label="Occupancy"
-              value={formData.status.occupancy}
-              onChange={(value) =>
-                setFormData({
-                  ...formData,
-                  status: {
-                    ...formData.status,
-                    occupancy: value as "Vacant" | "Occupied",
-                  },
-                })
-              }
-              options={["Vacant", "Occupied"]}
-              required
-            />
-            <Input
-              label="Price"
-              type="number"
-              value={formData.price || ""}
-              onChange={(value) =>
-                setFormData({ ...formData, price: Number(value) })
-              }
-              min={1}
-              suffix="/night"
-              required
-            />
-          </div>
-        </FormSection>
-
-        <FormSection
           title="Room Features"
           icon={
             <svg
@@ -489,6 +476,7 @@ export default function AddRoomPage() {
                 label="Primary Image"
                 onChange={handlePrimaryImageChange}
                 preview={primaryImagePreview}
+                nextImage={true}
                 required
               />
               <p className="text-xs text-gray-500">
@@ -504,6 +492,38 @@ export default function AddRoomPage() {
               <p className="text-xs text-gray-500">
                 Additional room photos (optional)
               </p>
+              {galleryPreviews.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {galleryPreviews.map((preview, index) => (
+                    <div key={index} className="relative aspect-square">
+                      <img
+                        src={preview}
+                        alt={`Gallery ${index + 1}`}
+                        className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeGalleryImage(index)}
+                        className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </FormSection>

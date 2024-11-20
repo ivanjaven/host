@@ -23,6 +23,7 @@ export const ROOM_FEATURES = [
 
 export const DEFAULT_ROOM_DATA: Omit<Room, "id" | "created_at" | "updated_at"> =
   {
+    name: "",
     number: "",
     type: "Standard" as RoomType,
     price: 0,
