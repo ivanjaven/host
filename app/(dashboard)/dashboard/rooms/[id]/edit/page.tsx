@@ -14,7 +14,13 @@ import { ImageUpload } from "@/components/forms/ImageUpload";
 import { RoomSupplies } from "@/components/forms/RoomSupplies";
 import { FeatureToggle } from "@/components/forms/FeatureToggle";
 import Loading from "@/components/ui/loading";
-import { ROOM_TYPES, BED_TYPES, ROOM_FEATURES } from "@/constants/room";
+import Image from "next/image";
+import {
+  ROOM_TYPES,
+  BED_TYPES,
+  ROOM_FEATURES,
+  DEFAULT_ROOM_DATA,
+} from "@/constants/room";
 import * as React from "react";
 
 interface PageProps {
@@ -25,7 +31,6 @@ interface PageProps {
 
 export default function EditRoomPage({ params }: PageProps) {
   const { id } = React.use(params);
-
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -34,7 +39,8 @@ export default function EditRoomPage({ params }: PageProps) {
   const [primaryImage, setPrimaryImage] = useState<File | null>(null);
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
   const [primaryImagePreview, setPrimaryImagePreview] = useState<string>("");
-  const [formData, setFormData] = useState<Omit<Room, "id">>(room as Room);
+  const [formData, setFormData] =
+    useState<Omit<Room, "id" | "created_at" | "updated_at">>(DEFAULT_ROOM_DATA);
 
   // Fetch room data
   useEffect(() => {
@@ -258,6 +264,17 @@ export default function EditRoomPage({ params }: PageProps) {
               }
               min={1}
               required
+            />{" "}
+            <Input
+              label="Price"
+              type="number"
+              value={formData.price || ""}
+              onChange={(value) =>
+                setFormData({ ...formData, price: Number(value) })
+              }
+              min={1}
+              suffix="/night"
+              required
             />
           </div>
         </FormSection>
@@ -353,78 +370,6 @@ export default function EditRoomPage({ params }: PageProps) {
         </FormSection>
 
         <FormSection
-          title="Room Status"
-          icon={
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          }
-        >
-          <div className="grid grid-cols-4 gap-4">
-            <Select
-              label="Maintenance"
-              value={formData.maintenanceStatus}
-              onChange={(value) =>
-                setFormData({ ...formData, maintenanceStatus: value })
-              }
-              options={["Operational", "Under Maintenance"]}
-              required
-            />
-            <Select
-              label="Housekeeping"
-              value={formData.status.housekeeping}
-              onChange={(value) =>
-                setFormData({
-                  ...formData,
-                  status: {
-                    ...formData.status,
-                    housekeeping: value as "Clean" | "Dirty" | "Cleaning",
-                  },
-                })
-              }
-              options={["Clean", "Dirty", "Cleaning"]}
-              required
-            />
-            <Select
-              label="Occupancy"
-              value={formData.status.occupancy}
-              onChange={(value) =>
-                setFormData({
-                  ...formData,
-                  status: {
-                    ...formData.status,
-                    occupancy: value as "Vacant" | "Occupied",
-                  },
-                })
-              }
-              options={["Vacant", "Occupied"]}
-              required
-            />
-            <Input
-              label="Price"
-              type="number"
-              value={formData.price || ""}
-              onChange={(value) =>
-                setFormData({ ...formData, price: Number(value) })
-              }
-              min={1}
-              suffix="/night"
-              required
-            />
-          </div>
-        </FormSection>
-
-        <FormSection
           title="Room Features"
           icon={
             <svg
@@ -512,7 +457,9 @@ export default function EditRoomPage({ params }: PageProps) {
               <ImageUpload
                 label="Primary Image"
                 onChange={handlePrimaryImageChange}
-                preview={primaryImagePreview}
+                preview={primaryImagePreview || room.images.primary}
+                nextImage={true}
+                required
               />
               <p className="text-xs text-gray-500">
                 Main display image for the room
@@ -527,55 +474,52 @@ export default function EditRoomPage({ params }: PageProps) {
               <p className="text-xs text-gray-500">
                 Additional room photos (optional)
               </p>
+
               {/* Display existing gallery images */}
               {formData.images.gallery.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="text-xs font-medium text-gray-600 mb-2">
-                    Existing Gallery Images
-                  </h4>
-                  <div className="grid grid-cols-4 gap-2">
-                    {formData.images.gallery.map((url, index) => (
-                      <div
-                        key={index}
-                        className="relative aspect-square rounded-lg overflow-hidden group"
-                      >
-                        <img
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {formData.images.gallery.map((url, index) => (
+                    <div key={index} className="relative aspect-square">
+                      <div className="relative w-full h-full">
+                        <Image
                           src={url}
                           alt={`Gallery ${index + 1}`}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover rounded-lg"
                         />
-                        <button
-                          onClick={() => {
-                            const newGallery = formData.images.gallery.filter(
-                              (_, i) => i !== index
-                            );
-                            setFormData({
-                              ...formData,
-                              images: {
-                                ...formData.images,
-                                gallery: newGallery,
-                              },
-                            });
-                          }}
-                          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                        >
-                          <svg
-                            className="w-6 h-6 text-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
                       </div>
-                    ))}
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newGallery = formData.images.gallery.filter(
+                            (_, i) => i !== index
+                          );
+                          setFormData({
+                            ...formData,
+                            images: {
+                              ...formData.images,
+                              gallery: newGallery,
+                            },
+                          });
+                        }}
+                        className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
