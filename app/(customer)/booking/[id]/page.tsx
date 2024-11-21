@@ -13,6 +13,7 @@ import Loading from "@/components/ui/loading";
 import Image from "next/image";
 import { differenceInDays } from "date-fns";
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 
 interface BookingFormData {
   checkIn: Date | null;
@@ -56,6 +57,7 @@ export default function BookingPage({ params }: PageProps) {
   const { id } = React.use(params);
   const router = useRouter();
   const [room, setRoom] = useState<Room | null>(null);
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState<BookingFormData>(initialFormData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -80,6 +82,37 @@ export default function BookingPage({ params }: PageProps) {
     fetchRoom();
   }, [id, router]);
 
+  useEffect(() => {
+    const checkIn = searchParams.get("checkIn");
+    const checkOut = searchParams.get("checkOut");
+    const adults = searchParams.get("adults");
+    const children = searchParams.get("children");
+    const infants = searchParams.get("infants");
+    const firstName = searchParams.get("firstName");
+    const lastName = searchParams.get("lastName");
+    const middleName = searchParams.get("middleName");
+    const mobileNumber = searchParams.get("mobileNumber");
+
+    if (checkIn && checkOut) {
+      setFormData((prev) => ({
+        ...prev,
+        checkIn: new Date(checkIn),
+        checkOut: new Date(checkOut),
+        guests: {
+          adults: adults ? parseInt(adults) : prev.guests.adults,
+          children: children ? parseInt(children) : prev.guests.children,
+          infants: infants ? parseInt(infants) : prev.guests.infants,
+        },
+        personalInfo: {
+          firstName: firstName || prev.personalInfo.firstName,
+          lastName: lastName || prev.personalInfo.lastName,
+          middleName: middleName || prev.personalInfo.middleName,
+          mobileNumber: mobileNumber || prev.personalInfo.mobileNumber,
+        },
+      }));
+    }
+  }, [searchParams]);
+
   const calculateTotalPrice = () => {
     if (!room || !formData.checkIn || !formData.checkOut) return 0;
     const nights = differenceInDays(formData.checkOut, formData.checkIn);
@@ -91,33 +124,100 @@ export default function BookingPage({ params }: PageProps) {
   };
 
   const handleProceed = () => {
+    setError("");
+
+    // Validate room exists
+    if (!room) {
+      setError("Room information not available");
+      return;
+    }
+
+    // Create an array to collect all validation errors
+    const errors: string[] = [];
+
+    // Validate dates
     if (!formData.checkIn || !formData.checkOut) {
-      setError("Please select check-in and check-out dates");
-      return;
+      errors.push("Please select both check-in and check-out dates");
+    } else {
+      const nights = differenceInDays(formData.checkOut, formData.checkIn);
+      if (nights <= 0) {
+        errors.push(
+          "Check-out date must be at least one day after check-in date"
+        );
+      }
     }
 
-    const nights = differenceInDays(formData.checkOut, formData.checkIn);
-    if (nights <= 0) {
-      setError("Check-out date must be at least one day after check-in date");
-      return;
-    }
-
+    // Validate guests
     if (formData.guests.adults < 1) {
-      setError("At least one adult is required");
+      errors.push("At least one adult is required");
+    }
+
+    const totalGuests = formData.guests.adults + formData.guests.children;
+    if (totalGuests > room.capacity.maxGuests) {
+      errors.push(
+        `Maximum ${room.capacity.maxGuests} guests allowed for this room`
+      );
+    }
+
+    // Validate personal information
+    if (!formData.personalInfo.firstName.trim()) {
+      errors.push("First name is required");
+    }
+
+    if (!formData.personalInfo.lastName.trim()) {
+      errors.push("Last name is required");
+    }
+
+    if (!formData.personalInfo.mobileNumber.trim()) {
+      errors.push("Mobile number is required");
+    } else {
+      // Remove any spaces or special characters
+      const cleanNumber = formData.personalInfo.mobileNumber.replace(/\D/g, "");
+
+      // Check if number starts with 09 and has exactly 11 digits
+      const phoneRegex = /^09\d{9}$/;
+      if (!phoneRegex.test(cleanNumber)) {
+        errors.push(
+          "Mobile number must start with 09 and be 11 digits long (e.g., 09123456789)"
+        );
+      }
+    }
+
+    // If there are any validation errors, display them and stop
+    if (errors.length > 0) {
+      setError(errors.join("\n"));
+      // Scroll to the error message
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
-    if (
-      !formData.personalInfo.firstName ||
-      !formData.personalInfo.lastName ||
-      !formData.personalInfo.mobileNumber
-    ) {
-      setError("Please fill in all required personal information");
-      return;
-    }
+    // All validations passed, proceed with the booking
+    try {
+      // Additional check for type safety
+      if (!formData.checkIn || !formData.checkOut) {
+        throw new Error("Invalid dates");
+      }
 
-    // Proceed with booking
-    router.push(`/booking/${id}/confirmation`);
+      const params = new URLSearchParams({
+        checkIn: formData.checkIn.toISOString(),
+        checkOut: formData.checkOut.toISOString(),
+        adults: formData.guests.adults.toString(),
+        children: formData.guests.children.toString(),
+        infants: formData.guests.infants.toString(),
+        firstName: formData.personalInfo.firstName,
+        lastName: formData.personalInfo.lastName,
+        middleName: formData.personalInfo.middleName || "",
+        mobileNumber: formData.personalInfo.mobileNumber,
+        totalPrice: calculateTotalPrice().toString(),
+      });
+
+      router.push(`/booking/${id}/confirmation?${params.toString()}`);
+    } catch (error) {
+      setError(
+        "An error occurred while processing your booking. Please try again."
+      );
+      console.error("Booking error:", error);
+    }
   };
 
   if (loading) {
@@ -141,7 +241,7 @@ export default function BookingPage({ params }: PageProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Back Button */}
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push("/rooms")}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
         >
           <svg
@@ -210,8 +310,34 @@ export default function BookingPage({ params }: PageProps) {
           </p>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl text-sm font-medium border border-red-100">
-              {error}
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl">
+              <div className="flex gap-3">
+                <div className="text-red-500">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-red-800">
+                    Please fix the following errors:
+                  </h3>
+                  <div className="mt-2 text-sm text-red-700 space-y-1">
+                    {error.split("\n").map((err, index) => (
+                      <p key={index}>• {err}</p>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

@@ -9,7 +9,11 @@ import { TransactionsList } from "@/components/inventory/TransactionList";
 import { InventoryActions } from "@/components/inventory/InventoryActions";
 import { RestockModal } from "@/components/inventory/RestockModal";
 import { AdjustStockModal } from "@/components/inventory/AdjustStockModal";
-import type { Inventory } from "@/types/inventory";
+import type {
+  CategoryItems,
+  Inventory,
+  InventoryItem,
+} from "@/types/inventory";
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<Inventory | null>(null);
@@ -32,6 +36,7 @@ export default function InventoryPage() {
       });
 
       return () => unsubscribe();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError("Failed to load inventory data");
       setLoading(false);
@@ -41,8 +46,8 @@ export default function InventoryPage() {
   const getTotalItems = () => {
     if (!inventory) return 0;
     let total = 0;
-    Object.values(inventory.supplies).forEach((category) => {
-      Object.values(category).forEach((item) => {
+    Object.values(inventory.supplies).forEach((category: CategoryItems) => {
+      Object.values(category).forEach((item: InventoryItem) => {
         total += item.current_stock;
       });
     });
@@ -52,14 +57,13 @@ export default function InventoryPage() {
   const getLowStockItems = () => {
     if (!inventory) return 0;
     let count = 0;
-    Object.values(inventory.supplies).forEach((category) => {
-      Object.values(category).forEach((item) => {
+    Object.values(inventory.supplies).forEach((category: CategoryItems) => {
+      Object.values(category).forEach((item: InventoryItem) => {
         if (item.status === "low") count++;
       });
     });
     return count;
   };
-
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
