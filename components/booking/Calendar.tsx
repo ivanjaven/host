@@ -29,11 +29,6 @@ export function Calendar({ selectedDates, onDateChange }: CalendarProps) {
     new Date(2024, 11, 26),
   ];
 
-  // const isCurrentDayAvailable = () => {
-  //   const now = new Date();
-  //   return now.getHours() <= 17; // 5 PM cutoff
-  // };
-
   const getMinDate = () => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -59,6 +54,12 @@ export function Calendar({ selectedDates, onDateChange }: CalendarProps) {
       });
       setCalendarMode("checkOut");
     } else {
+      // Check if trying to select same day as check-in
+      if (selectedDates.checkIn && isSameDay(date, selectedDates.checkIn)) {
+        return;
+      }
+
+      // Check if selected date is before check-in
       if (selectedDates.checkIn && isBefore(date, selectedDates.checkIn)) {
         onDateChange({
           checkIn: date,
@@ -117,8 +118,8 @@ export function Calendar({ selectedDates, onDateChange }: CalendarProps) {
       fontWeight: "bold",
     },
     inRange: {
-      backgroundColor: "#FF69B4",
-      color: "white",
+      backgroundColor: "#FFE4E1",
+      color: "#FF69B4",
     },
     unavailable: {
       backgroundColor: "#FEE2E2",
@@ -166,15 +167,27 @@ export function Calendar({ selectedDates, onDateChange }: CalendarProps) {
                   ? format(selectedDates.checkOut, "MMM dd, yyyy")
                   : ""
               }
-              onClick={() => setCalendarMode("checkOut")}
+              onClick={() => {
+                if (selectedDates.checkIn) {
+                  setCalendarMode("checkOut");
+                }
+              }}
               readOnly
               placeholder="Select date"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900
-                focus:outline-none focus:border-primary cursor-pointer"
+              className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900
+                focus:outline-none focus:border-primary cursor-pointer
+                ${
+                  !selectedDates.checkIn ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              disabled={!selectedDates.checkIn}
             />
             <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
         </div>
+      </div>
+
+      <div className="text-xs text-gray-500 mb-4">
+        * Check-out date must be at least one day after check-in date
       </div>
 
       <style>{`
@@ -253,6 +266,10 @@ export function Calendar({ selectedDates, onDateChange }: CalendarProps) {
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-[#FF69B4]"></div>
           <span>Selected</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded-full bg-[#FFE4E1]"></div>
+          <span>In Range</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-[#FEE2E2]"></div>

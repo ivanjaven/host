@@ -83,12 +83,22 @@ export default function BookingPage({ params }: PageProps) {
   const calculateTotalPrice = () => {
     if (!room || !formData.checkIn || !formData.checkOut) return 0;
     const nights = differenceInDays(formData.checkOut, formData.checkIn);
+
+    // Return 0 if trying to check out on same day
+    if (nights <= 0) return 0;
+
     return room.price * nights;
   };
 
   const handleProceed = () => {
     if (!formData.checkIn || !formData.checkOut) {
       setError("Please select check-in and check-out dates");
+      return;
+    }
+
+    const nights = differenceInDays(formData.checkOut, formData.checkIn);
+    if (nights <= 0) {
+      setError("Check-out date must be at least one day after check-in date");
       return;
     }
 

@@ -1,6 +1,7 @@
 // components/booking/PricingSummary.tsx
 import { Room } from "@/types/room";
 import { format, differenceInDays } from "date-fns";
+import Image from "next/image";
 
 interface PricingSummaryProps {
   room: Room;
@@ -17,10 +18,8 @@ export function PricingSummary({
 }: PricingSummaryProps) {
   const numberOfNights =
     checkIn && checkOut ? differenceInDays(checkOut, checkIn) : 0;
-  const taxRate = 0.12; // 12% tax
-  const taxAmount = totalPrice * taxRate;
   const serviceFee = 1000; // Fixed service fee
-  const finalTotal = totalPrice + taxAmount + serviceFee;
+  const finalTotal = totalPrice + serviceFee;
 
   const PriceRow = ({
     label,
@@ -96,8 +95,6 @@ export function PricingSummary({
           }`}
         />
 
-        <PriceRow label="Tax" amount={taxAmount} subtext="12% of room rate" />
-
         <PriceRow
           label="Service Fee"
           amount={serviceFee}
@@ -164,17 +161,21 @@ export function PricingSummary({
 
       {/* Payment Methods */}
       <div className="mt-4 pt-4 border-t border-gray-100">
-        <p className="text-xs text-gray-500 mb-2">Accepted Payment Methods</p>
+        <p className="text-xs text-gray-500 mb-2">
+          Accepted Payment Methods (Aside form Cash)
+        </p>
         <div className="flex gap-2">
-          {["visa", "mastercard", "amex", "gcash"].map((method) => (
+          {["visa", "mastercard", "gcash"].map((method) => (
             <div
               key={method}
-              className="w-10 h-6 bg-gray-100 rounded flex items-center justify-center"
+              className="w-10 h-6 rounded flex items-center justify-center"
             >
-              <img
+              <Image
                 src={`/images/payment/${method}.svg`}
                 alt={method}
-                className="h-4 w-auto object-contain"
+                width={24}
+                height={24}
+                className="h-6 w-auto object-contain"
               />
             </div>
           ))}
