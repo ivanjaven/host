@@ -118,8 +118,8 @@ export function Calendar({ selectedDates, onDateChange }: CalendarProps) {
       fontWeight: "bold",
     },
     inRange: {
-      backgroundColor: "#FFE4E1",
-      color: "#FF69B4",
+      backgroundColor: "#FF69B4",
+      color: "white",
     },
     unavailable: {
       backgroundColor: "#FEE2E2",
@@ -266,10 +266,6 @@ export function Calendar({ selectedDates, onDateChange }: CalendarProps) {
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-[#FF69B4]"></div>
           <span>Selected</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-[#FFE4E1]"></div>
-          <span>In Range</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-[#FEE2E2]"></div>
