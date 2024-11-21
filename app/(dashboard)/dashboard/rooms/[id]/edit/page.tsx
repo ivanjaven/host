@@ -33,6 +33,10 @@ import {
   ROOM_FEATURES,
   DEFAULT_ROOM_DATA,
 } from "@/constants/room";
+import {
+  markRoomNumberAsAvailable,
+  markRoomNumberAsUsed,
+} from "@/utils/roomNumbers";
 // import {
 //   markRoomNumberAsAvailable,
 //   markRoomNumberAsUsed,
@@ -152,12 +156,8 @@ export default function EditRoomPage({ params }: PageProps) {
 
       // Handle room number change if it was updated
       if (formData.number !== room.number) {
-        // Update Firestore room numbers statuses
-        const roomNumbersRef = doc(db, "config", "roomNumbers");
-        await updateDoc(roomNumbersRef, {
-          [`numbers.${room.number}.used`]: false,
-          [`numbers.${formData.number}.used`]: true,
-        });
+        await markRoomNumberAsAvailable(room.number);
+        await markRoomNumberAsUsed(formData.number);
 
         // Update RTDB
         const database = getDatabase();

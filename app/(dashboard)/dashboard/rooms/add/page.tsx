@@ -3,13 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db, storage } from "@/lib/firebase";
-import {
-  collection,
-  doc,
-  setDoc,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
+import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { getDatabase, ref as rtdbRef, set } from "firebase/database";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Room, RoomType, BedType } from "@/types/room";
@@ -27,6 +21,7 @@ import {
   DEFAULT_ROOM_DATA,
 } from "@/constants/room";
 import { useAvailableRoomNumbers } from "@/hooks/useAvailableRoomNumbers";
+import { markRoomNumberAsUsed } from "@/utils/roomNumbers";
 
 export default function AddRoomPage() {
   const router = useRouter();
@@ -108,10 +103,7 @@ export default function AddRoomPage() {
       );
 
       // Mark room number as used
-      const roomNumbersRef = doc(db, "config", "roomNumbers");
-      await updateDoc(roomNumbersRef, {
-        [`numbers.${formData.number}.used`]: true,
-      });
+      await markRoomNumberAsUsed(formData.number);
 
       // Create a new document reference to get the ID
       const roomsRef = collection(db, "rooms");
