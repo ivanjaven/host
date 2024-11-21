@@ -5,6 +5,7 @@ interface SelectProps<T extends string> {
   onChange: (value: T) => void;
   options: readonly T[];
   required?: boolean;
+  disabled?: boolean;
 }
 
 export function Select<T extends string>({
@@ -13,6 +14,7 @@ export function Select<T extends string>({
   onChange,
   options,
   required,
+  disabled,
 }: SelectProps<T>) {
   return (
     <div>
@@ -23,6 +25,7 @@ export function Select<T extends string>({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
+        disabled={disabled}
         className={`
           w-full px-2 py-2
           text-xs text-gray-900 font-medium

@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db, storage } from "@/lib/firebase";
-import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  setDoc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 import { getDatabase, ref as rtdbRef, set } from "firebase/database";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Room, RoomType, BedType } from "@/types/room";
@@ -20,6 +26,7 @@ import {
   ROOM_FEATURES,
   DEFAULT_ROOM_DATA,
 } from "@/constants/room";
+import { useAvailableRoomNumbers } from "@/hooks/useAvailableRoomNumbers";
 
 export default function AddRoomPage() {
   const router = useRouter();
@@ -29,6 +36,8 @@ export default function AddRoomPage() {
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
   const [primaryImagePreview, setPrimaryImagePreview] = useState<string>("");
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+  const { availableNumbers, loading: loadingNumbers } =
+    useAvailableRoomNumbers();
   const [formData, setFormData] =
     useState<Omit<Room, "id" | "created_at" | "updated_at">>(DEFAULT_ROOM_DATA);
 
@@ -97,6 +106,12 @@ export default function AddRoomPage() {
           return getDownloadURL(imageRef);
         })
       );
+
+      // Mark room number as used
+      const roomNumbersRef = doc(db, "config", "roomNumbers");
+      await updateDoc(roomNumbersRef, {
+        [`numbers.${formData.number}.used`]: true,
+      });
 
       // Create a new document reference to get the ID
       const roomsRef = collection(db, "rooms");
@@ -236,20 +251,19 @@ export default function AddRoomPage() {
           }
         >
           <div className="grid grid-cols-2 gap-4">
-            <Input
+            <Select
               label="Room Number"
-              type="text"
               value={formData.number}
               onChange={(value) => {
-                const newNumber = value as string;
                 setFormData({
                   ...formData,
-                  number: newNumber,
-                  // Create combined name
-                  name: `${formData.type} ${newNumber}`,
+                  number: value,
+                  name: `${formData.type} ${value}`,
                 });
               }}
+              options={availableNumbers}
               required
+              disabled={loadingNumbers}
             />
             <Select<RoomType>
               label="Room Type"

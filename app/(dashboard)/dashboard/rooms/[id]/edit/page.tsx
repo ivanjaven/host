@@ -1,10 +1,21 @@
 // app/dashboard/rooms/[id]/edit/page.tsx
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "@/lib/firebase";
+import {
+  getDatabase,
+  ref as databaseRef,
+  set,
+  get,
+  remove,
+} from "firebase/database"; // Changed rtdbRef to databaseRef
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage"; // Added storageRef
+import { auth, db, storage } from "@/lib/firebase";
 import { Room, RoomType, BedType } from "@/types/room";
 import { FormSection } from "@/components/forms/FormSection";
 import { Input } from "@/components/forms/Input";
@@ -14,6 +25,7 @@ import { ImageUpload } from "@/components/forms/ImageUpload";
 import { RoomSupplies } from "@/components/forms/RoomSupplies";
 import { FeatureToggle } from "@/components/forms/FeatureToggle";
 import Loading from "@/components/ui/loading";
+import { useAvailableRoomNumbers } from "@/hooks/useAvailableRoomNumbers";
 import Image from "next/image";
 import {
   ROOM_TYPES,
@@ -21,7 +33,10 @@ import {
   ROOM_FEATURES,
   DEFAULT_ROOM_DATA,
 } from "@/constants/room";
-import * as React from "react";
+// import {
+//   markRoomNumberAsAvailable,
+//   markRoomNumberAsUsed,
+// } from "@/utils/roomNumbers";
 
 interface PageProps {
   params: Promise<{
@@ -39,6 +54,8 @@ export default function EditRoomPage({ params }: PageProps) {
   const [primaryImage, setPrimaryImage] = useState<File | null>(null);
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
   const [primaryImagePreview, setPrimaryImagePreview] = useState<string>("");
+  const { availableNumbers, loading: loadingNumbers } =
+    useAvailableRoomNumbers();
   const [formData, setFormData] =
     useState<Omit<Room, "id" | "created_at" | "updated_at">>(DEFAULT_ROOM_DATA);
 
@@ -91,21 +108,27 @@ export default function EditRoomPage({ params }: PageProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!room) {
+      setError("Room data not found");
+      return;
+    }
+
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    setIsSaving(true);
-    setError("");
-
     try {
+      setIsSaving(true);
+      setError("");
+
       // Handle image uploads if new images are selected
       const updatedImages = { ...formData.images };
 
       if (primaryImage) {
-        const primaryImageRef = ref(
+        const primaryImageRef = storageRef(
           storage,
           `rooms/${Date.now()}_${primaryImage.name}`
         );
@@ -116,7 +139,10 @@ export default function EditRoomPage({ params }: PageProps) {
       if (galleryImages.length > 0) {
         const galleryUrls = await Promise.all(
           galleryImages.map(async (image) => {
-            const imageRef = ref(storage, `rooms/${Date.now()}_${image.name}`);
+            const imageRef = storageRef(
+              storage,
+              `rooms/${Date.now()}_${image.name}`
+            );
             await uploadBytes(imageRef, image);
             return getDownloadURL(imageRef);
           })
@@ -124,10 +150,45 @@ export default function EditRoomPage({ params }: PageProps) {
         updatedImages.gallery = [...formData.images.gallery, ...galleryUrls];
       }
 
-      // Update room document
+      // Handle room number change if it was updated
+      if (formData.number !== room.number) {
+        // Update Firestore room numbers statuses
+        const roomNumbersRef = doc(db, "config", "roomNumbers");
+        await updateDoc(roomNumbersRef, {
+          [`numbers.${room.number}.used`]: false,
+          [`numbers.${formData.number}.used`]: true,
+        });
+
+        // Update RTDB
+        const database = getDatabase();
+        const oldStatusRef = databaseRef(
+          database,
+          `roomStatuses/${room.type}${room.number}`
+        );
+        const newStatusRef = databaseRef(
+          database,
+          `roomStatuses/${formData.type}${formData.number}`
+        );
+
+        const snapshot = await get(oldStatusRef);
+
+        if (snapshot.exists()) {
+          // Save status to new path using RTDB set
+          await set(newStatusRef, {
+            ...snapshot.val(),
+            lastUpdated: Date.now(),
+            updatedBy: auth.currentUser?.uid || "system",
+          });
+          // Remove old path
+          await remove(oldStatusRef);
+        }
+      }
+
+      // Update room document in Firestore
       const roomRef = doc(db, "rooms", id);
       const updateData = {
         ...formData,
+        name: `${formData.type}${formData.number}`,
         images: updatedImages,
         updated_at: serverTimestamp(),
       };
@@ -135,10 +196,12 @@ export default function EditRoomPage({ params }: PageProps) {
       await updateDoc(roomRef, updateData);
 
       router.push(`/dashboard/rooms/${id}`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Error updating room:", error);
-      setError(error.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("An error occurred while updating the room");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -229,14 +292,22 @@ export default function EditRoomPage({ params }: PageProps) {
           }
         >
           <div className="grid grid-cols-2 gap-4">
-            <Input
+            <Select
               label="Room Number"
-              type="text"
               value={formData.number}
-              onChange={(value) =>
-                setFormData({ ...formData, number: value as string })
-              }
+              onChange={(value) => {
+                setFormData({
+                  ...formData,
+                  number: value,
+                  name: `${formData.type}${value}`,
+                });
+              }}
+              options={[
+                room.number,
+                ...availableNumbers.filter((num) => num !== room.number),
+              ]}
               required
+              disabled={loadingNumbers}
             />
             <Select<RoomType>
               label="Room Type"
