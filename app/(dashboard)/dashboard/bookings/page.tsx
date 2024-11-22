@@ -11,9 +11,10 @@ import {
   query,
   orderBy,
   where,
+  getDoc,
 } from "firebase/firestore";
-import { getDatabase, ref, update } from "firebase/database";
-import { db } from "@/lib/firebase";
+import { get, getDatabase, ref, update } from "firebase/database";
+import { auth, db } from "@/lib/firebase";
 import { Booking } from "@/types/booking";
 import { BookingTable } from "@/components/booking/BookingTable";
 import { ConfirmationModal } from "@/components/booking/ConfirmationModal";
@@ -150,8 +151,75 @@ export default function BookingsPage() {
           });
         }
       } else if (actionType === "accept") {
-        // Update room status in Realtime Database
+        // Get the room data first to know what supplies to deduct
+        const roomDoc = await getDoc(doc(db, "rooms", selectedBooking.roomId));
+        if (!roomDoc.exists()) {
+          throw new Error("Room not found");
+        }
+        const roomData = roomDoc.data();
+
+        // Get current inventory state
         const database = getDatabase();
+        const inventoryRef = ref(database, "inventory");
+        const inventorySnapshot = await get(inventoryRef);
+        const inventory = inventorySnapshot.val();
+
+        // Prepare updates object
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updates: { [key: string]: any } = {};
+
+        // Process each supply category
+        const categories = ["toiletries", "bedding", "refreshments"] as const;
+
+        for (const category of categories) {
+          for (const [itemName, quantity] of Object.entries(
+            roomData.supplies[category]
+          )) {
+            const currentStock =
+              inventory.supplies[category][itemName].current_stock;
+            const newStock = currentStock - Number(quantity);
+
+            if (newStock < 0) {
+              throw new Error(`Insufficient ${itemName} in inventory`);
+            }
+
+            // Update stock level
+            updates[`supplies/${category}/${itemName}/current_stock`] =
+              newStock;
+
+            // Calculate new status
+            const minThreshold =
+              inventory.supplies[category][itemName].minimum_threshold;
+            const ratio = newStock / minThreshold;
+            let newStatus: "low" | "medium" | "high" = "high";
+            if (ratio <= 1.5) newStatus = "low";
+            else if (ratio <= 3) newStatus = "medium";
+
+            updates[`supplies/${category}/${itemName}/status`] = newStatus;
+            updates[`supplies/${category}/${itemName}/last_updated`] =
+              new Date().toISOString();
+
+            // Create single transaction for each item
+            const transactionId = `transactions/${Date.now()}_${itemName}`;
+            updates[transactionId] = {
+              type: "deduction",
+              item_id: itemName,
+              category: category,
+              quantity: Number(quantity),
+              previous_stock: currentStock,
+              new_stock: newStock,
+              timestamp: new Date().toISOString(),
+              performed_by: auth.currentUser?.uid || "unknown",
+              reference: selectedBooking.referenceNumber,
+              notes: `Deducted for booking ${selectedBooking.referenceNumber}`,
+            };
+          }
+        }
+
+        // Update Realtime Database for inventory
+        await update(ref(database, "inventory"), updates);
+
+        // Update room status in Realtime Database
         const roomStatusRef = ref(
           database,
           `roomStatuses/${selectedBooking.roomType}${selectedBooking.roomNumber}`

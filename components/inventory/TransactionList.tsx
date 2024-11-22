@@ -22,7 +22,7 @@ export function TransactionsList({ transactions }: TransactionsListProps) {
       (a, b) =>
         new Date(b[1].timestamp).getTime() - new Date(a[1].timestamp).getTime()
     )
-    .slice(0, 5); // Show only last 5 transactions
+    .slice(0, 25); // Show only last 5 transactions
 
   return (
     <div className="bg-white rounded-xl border border-gray-100">
