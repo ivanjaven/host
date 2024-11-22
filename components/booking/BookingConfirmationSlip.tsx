@@ -22,7 +22,6 @@ export function BookingConfirmationSlip({
   roomNumber,
   lastName,
   numberOfGuests,
-  bookingDate,
   totalAmount,
 }: BookingConfirmationSlipProps) {
   return (

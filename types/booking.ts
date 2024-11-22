@@ -1,4 +1,6 @@
 // types/booking.ts
+import { Timestamp } from "firebase/firestore";
+
 export type BookingStatus = "pending" | "active" | "checked_out";
 export type PaymentStatus = "pending" | "paid" | "refunded" | "cancelled";
 
@@ -25,6 +27,6 @@ export interface Booking {
   serviceFee: number;
   status: BookingStatus;
   paymentStatus: PaymentStatus;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
