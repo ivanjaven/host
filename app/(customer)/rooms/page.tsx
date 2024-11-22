@@ -1,6 +1,8 @@
+// app/rooms/page.tsx
 "use client";
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
+import { getDatabase, ref, get } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { Room } from "@/types/room";
 import { RoomCardCustomer } from "@/components/rooms/RoomCardCustomer";
@@ -24,23 +26,40 @@ export default function RoomsPage() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const roomsRef = collection(db, "rooms");
-        const q = query(
-          roomsRef,
-          where("status.occupancy", "==", "Vacant"),
-          where("status.reservation", "==", "Not Reserved")
-        );
-        const snapshot = await getDocs(q);
+        // First get room statuses from Realtime Database
+        const database = getDatabase();
+        const statusesRef = ref(database, "roomStatuses");
+        const statusSnapshot = await get(statusesRef);
+        const roomStatuses = statusSnapshot.val();
 
-        const roomsData = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            reviews: data.reviews ?? [],
-            averageRating: data.averageRating ?? 0,
-          } as Room;
-        });
+        // Get all rooms from Firestore
+        const roomsRef = collection(db, "rooms");
+        const snapshot = await getDocs(roomsRef);
+
+        // Filter rooms based on their status in RTDB
+        const roomsData = snapshot.docs
+          .map((doc) => {
+            const data = doc.data();
+            const roomKey = `${data.type}${data.number}`;
+            const status = roomStatuses[roomKey];
+
+            // Only include room if it meets all criteria
+            if (
+              status &&
+              status.occupancy === "Vacant" &&
+              status.reservation === "Not Reserved" &&
+              status.housekeeping === "Clean"
+            ) {
+              return {
+                id: doc.id,
+                ...data,
+                reviews: data.reviews ?? [],
+                averageRating: data.averageRating ?? 0,
+              } as Room;
+            }
+            return null;
+          })
+          .filter((room): room is Room => room !== null); // Type guard to filter out null values
 
         setRooms(roomsData);
       } catch (error) {
@@ -54,6 +73,7 @@ export default function RoomsPage() {
     fetchRooms();
   }, []);
 
+  // Filter rooms based on all filters
   const filteredRooms = rooms.filter((room) => {
     // Type filter
     const matchesType = filters.type === "All" || room.type === filters.type;
@@ -76,10 +96,7 @@ export default function RoomsPage() {
       room.type.toLowerCase().includes(searchTerm) ||
       `${room.type} ${room.number}`.toLowerCase().includes(searchTerm);
 
-    const matches =
-      matchesType && matchesCapacity && matchesFloor && matchesSearch;
-
-    return matches;
+    return matchesType && matchesCapacity && matchesFloor && matchesSearch;
   });
 
   if (loading) {
