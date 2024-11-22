@@ -1,0 +1,30 @@
+// types/booking.ts
+export type BookingStatus = "pending" | "active" | "checked_out";
+export type PaymentStatus = "pending" | "paid" | "refunded" | "cancelled";
+
+export interface Booking {
+  id: string;
+  referenceNumber: string;
+  roomId: string;
+  roomType: string;
+  roomNumber: string;
+  checkIn: Date;
+  checkOut: Date;
+  guests: {
+    adults: number;
+    children: number;
+    infants: number;
+  };
+  guestInfo: {
+    firstName: string;
+    lastName: string;
+    middleName: string;
+    mobileNumber: string;
+  };
+  totalAmount: number;
+  serviceFee: number;
+  status: BookingStatus;
+  paymentStatus: PaymentStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}

@@ -46,3 +46,9 @@ html {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+@media print {
+  @page {
+    size: 80mm 170mm;
+  }
+}
