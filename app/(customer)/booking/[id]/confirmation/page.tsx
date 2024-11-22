@@ -232,6 +232,7 @@ export default function BookingConfirmationPage({ params }: PageProps) {
           {/* Actions */}
           <div className="flex justify-center gap-4">
             <button
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               onClick={(e: React.MouseEvent<HTMLButtonElement>) =>
                 handlePrint()
               }

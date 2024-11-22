@@ -5,9 +5,10 @@ import { Timestamp } from "firebase/firestore";
 
 interface GuestTableProps {
   guests: Guest[];
+  type: "active" | "checked_out";
 }
 
-export function GuestTable({ guests }: GuestTableProps) {
+export function GuestTable({ guests, type }: GuestTableProps) {
   const formatTimestamp = (timestamp: Timestamp) => {
     return format(timestamp.toDate(), "MMM d, yyyy h:mm a");
   };
@@ -37,62 +38,68 @@ export function GuestTable({ guests }: GuestTableProps) {
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="text-left border-b border-gray-100">
-            <th className="px-6 py-4 text-xs font-semibold text-gray-600">
+          <tr className="bg-gray-50 border-y border-gray-100">
+            <th className="px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-left">
               Guest Name
             </th>
-            <th className="px-6 py-4 text-xs font-semibold text-gray-600">
+            <th className="px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-left">
               Reference Number
             </th>
-            <th className="px-6 py-4 text-xs font-semibold text-gray-600">
+            <th className="px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-left">
               Contact
             </th>
-            <th className="px-6 py-4 text-xs font-semibold text-gray-600">
+            <th className="px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-left">
               Check In
             </th>
-            <th className="px-6 py-4 text-xs font-semibold text-gray-600">
+            <th className="px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-left">
               Check Out
             </th>
-            <th className="px-6 py-4 text-xs font-semibold text-gray-600">
+            <th className="px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-left">
               Status
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-gray-50">
           {guests.map((guest) => (
             <tr
               key={guest.id}
-              className="border-b border-gray-50 last:border-0"
+              className="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
             >
               <td className="px-6 py-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <span className="text-xs font-medium text-gray-900">
                     {`${guest.firstName} ${guest.lastName}`}
-                  </p>
+                  </span>
                   {guest.middleName && (
-                    <p className="text-xs text-gray-500">{guest.middleName}</p>
+                    <span className="text-[11px] text-gray-500 block mt-0.5">
+                      {guest.middleName}
+                    </span>
                   )}
                 </div>
               </td>
               <td className="px-6 py-4">
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-xs font-medium text-gray-900">
                   {guest.referenceNumber}
                 </span>
               </td>
               <td className="px-6 py-4">
-                <span className="text-sm text-gray-600">
+                <span className="text-xs text-gray-600">
                   {guest.mobileNumber}
                 </span>
               </td>
               <td className="px-6 py-4">
-                <span className="text-sm text-gray-600">
-                  {formatTimestamp(guest.checkIn)}
-                </span>
+                <div>
+                  <span className="text-[11px] text-gray-900">
+                    {formatTimestamp(guest.checkIn)}
+                  </span>
+                </div>
               </td>
               <td className="px-6 py-4">
-                <span className="text-sm text-gray-600">
-                  {formatTimestamp(guest.checkOut)}
-                </span>
+                <div>
+                  <span className="text-[11px] text-gray-900">
+                    {formatTimestamp(guest.checkOut)}
+                  </span>
+                </div>
               </td>
               <td className="px-6 py-4">
                 <StatusBadge status={guest.status} />
@@ -104,7 +111,9 @@ export function GuestTable({ guests }: GuestTableProps) {
 
       {guests.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500">No guests found</p>
+          <p className="text-xs text-gray-500">
+            {type === "active" ? "No active guests" : "No checked out guests"}
+          </p>
         </div>
       )}
     </div>
