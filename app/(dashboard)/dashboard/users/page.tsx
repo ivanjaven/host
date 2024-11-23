@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { User } from "@/types/user";
 import { UserTable } from "@/components/users/UserTable";
@@ -11,25 +11,27 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const usersRef = collection(db, "users");
+      const snapshot = await getDocs(
+        query(usersRef, where("archived", "==", false))
+      );
+      const usersData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as User[];
+      setUsers(usersData);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      setError("Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const usersRef = collection(db, "users");
-        const snapshot = await getDocs(usersRef);
-        const usersData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as User[];
-
-        setUsers(usersData);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        setError("Failed to load users");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUsers();
   }, []);
 
@@ -53,8 +55,21 @@ export default function UsersPage() {
         <button
           onClick={() => (window.location.href = "/dashboard/users/add")}
           className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium
-            hover:bg-primary-dark transition-colors"
+            hover:bg-primary-dark transition-colors flex items-center gap-2"
         >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
           Add User
         </button>
       </div>
@@ -66,7 +81,7 @@ export default function UsersPage() {
       )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <UserTable users={users} />
+        <UserTable users={users} onRefresh={fetchUsers} />
       </div>
     </div>
   );

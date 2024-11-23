@@ -43,6 +43,7 @@ export default function AddUserPage() {
         role: formData.role,
         status: "active",
         lastLogin: null,
+        archived: false,
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
       });

@@ -9,6 +9,7 @@ export interface User {
   lastName: string;
   role: UserRole;
   status: "active" | "inactive";
+  archived: boolean;
   lastLogin: Timestamp | null;
   created_at: Timestamp;
   updated_at: Timestamp;
