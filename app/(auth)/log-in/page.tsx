@@ -1,4 +1,4 @@
-// app/(auth)/login/page.tsx
+// app/(auth)/log-in/page.tsx
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -6,7 +6,15 @@ import Loading from "@/components/ui/loading";
 import Image from "next/image";
 import { auth, db } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -29,20 +37,25 @@ export default function LoginPage() {
       );
       const user = userCredential.user;
 
-      // Get user type from Firestore
+      // Get user document from Firestore
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", user.email));
+      const q = query(usersRef, where("uid", "==", user.uid));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
         throw new Error("User data not found");
       }
 
-      const userData = querySnapshot.docs[0].data();
-      const userType = userData.userType;
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
 
-      // Store user type in localStorage (optional)
-      localStorage.setItem("userType", userType);
+      // Update last login
+      await updateDoc(doc(db, "users", userDoc.id), {
+        lastLogin: serverTimestamp(),
+      });
+
+      // Store user type in localStorage
+      localStorage.setItem("userRole", userData.role);
 
       // Redirect to dashboard
       router.push("/dashboard");
@@ -81,7 +94,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-100 text-red-600 rounded-lg">
+              <div className="mb-4 p-3 bg-red-100 text-red-600 rounded-lg text-sm">
                 {error}
               </div>
             )}
@@ -91,7 +104,7 @@ export default function LoginPage() {
                 <div>
                   <label
                     htmlFor="email"
-                    className="block text-sm text-gray-600 mb-1"
+                    className="block text-xs font-medium text-gray-700 mb-1"
                   >
                     Email
                   </label>
@@ -102,7 +115,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-lg border border-gray-200
                       focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
-                      text-gray-900 placeholder-gray-400"
+                      text-sm text-gray-900 placeholder-gray-400"
                     placeholder="Enter your email"
                     required
                   />
@@ -111,7 +124,7 @@ export default function LoginPage() {
                 <div>
                   <label
                     htmlFor="password"
-                    className="block text-sm text-gray-600 mb-1"
+                    className="block text-xs font-medium text-gray-700 mb-1"
                   >
                     Password
                   </label>
@@ -122,7 +135,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-lg border border-gray-200
                       focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
-                      text-gray-900 placeholder-gray-400"
+                      text-sm text-gray-900 placeholder-gray-400"
                     placeholder="••••••••"
                     required
                   />
@@ -134,7 +147,7 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full py-2.5 px-4 text-white bg-primary hover:bg-primary-dark
                   rounded-lg transition-colors duration-200 flex justify-center items-center
-                  disabled:opacity-50"
+                  disabled:opacity-50 text-sm font-medium"
               >
                 {isLoading ? <Loading size="small" color="white" /> : "Sign in"}
               </button>

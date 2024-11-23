@@ -4,7 +4,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { useState, useEffect } from "react";
+
+interface UserData {
+  firstName: string;
+  lastName: string;
+  role: string;
+  lastLogin: Date | null;
+}
 
 const navigation = [
   {
@@ -169,11 +178,34 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const usersRef = collection(db, "users");
+          const q = query(usersRef, where("uid", "==", user.uid));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const userData = querySnapshot.docs[0].data() as UserData;
+            setUserData(userData);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      router.push("/");
+      router.push("/log-in");
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -259,21 +291,26 @@ export default function DashboardLayout({
             </button>
 
             {/* Profile */}
-            <div className="flex items-center gap-3">
-              <Image
-                src="/images/avatar.png"
-                alt="Profile"
-                width={36}
-                height={36}
-                className="w-9 h-9 rounded-full object-cover"
-              />
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-900">
-                  Anya Titian
-                </span>
-                <span className="text-xs text-gray-500">Receptionist</span>
+            {userData && (
+              <div className="flex items-center gap-3">
+                <Image
+                  src={`/images/user/${userData.role}.png`}
+                  alt="Profile"
+                  width={36}
+                  height={36}
+                  className="w-9 h-9 rounded-full object-cover"
+                />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-900">
+                    {userData.firstName} {userData.lastName}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {userData.role.charAt(0).toUpperCase() +
+                      userData.role.slice(1)}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
