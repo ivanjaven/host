@@ -32,7 +32,7 @@ export default function BookingConfirmationPage({ params }: PageProps) {
   const [bookingReference, setBookingReference] = useState("");
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(true);
-  const [isPrinting, setIsPrinting] = useState(false);
+  const [isPrinting] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({ contentRef });
