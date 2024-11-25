@@ -6,6 +6,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { UserRole } from "@/types/user";
 import Loading from "@/components/ui/loading";
+import { getDatabase, ref, get, set } from "firebase/database";
 
 const ROLES: UserRole[] = ["admin", "receptionist", "housekeeper"];
 
@@ -20,6 +21,14 @@ export default function AddUserPage() {
     lastName: "",
     role: "receptionist" as UserRole,
   });
+
+  const initializeHousekeeperInQueue = async (uid: string) => {
+    const database = getDatabase();
+    const queueRef = ref(database, "housekeepingQueue/queue");
+    const snapshot = await get(queueRef);
+    const currentQueue = snapshot.val() || [];
+    await set(queueRef, [...currentQueue, uid]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +56,11 @@ export default function AddUserPage() {
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
       });
+
+      // If the new user is a housekeeper, add them to the queue
+      if (formData.role === "housekeeper") {
+        await initializeHousekeeperInQueue(userCredential.user.uid);
+      }
 
       router.push("/dashboard/users");
     } catch (err) {

@@ -13,13 +13,14 @@ import {
   where,
   getDoc,
 } from "firebase/firestore";
-import { get, getDatabase, ref, update } from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 import { Booking } from "@/types/booking";
 import { BookingTable } from "@/components/booking/BookingTable";
 import { ConfirmationModal } from "@/components/booking/ConfirmationModal";
 import Loading from "@/components/ui/loading";
 import { startOfDay, startOfWeek, startOfMonth } from "date-fns";
+import { getDatabase, ref, get, set, update } from "firebase/database";
+import { HousekeepingAssignment } from "@/types/housekeeping";
 
 type TimeFilter = "day" | "week" | "month" | "all";
 
@@ -127,6 +128,13 @@ export default function BookingsPage() {
           housekeeping: "Dirty",
           lastUpdated: Date.now(),
         });
+
+        // Assign room for cleaning
+        await assignRoomForCleaning(
+          selectedBooking.roomId,
+          selectedBooking.roomType,
+          selectedBooking.roomNumber
+        );
 
         // Update booking status in Firestore
         const bookingRef = doc(db, "bookings", selectedBooking.id);
@@ -270,6 +278,47 @@ export default function BookingsPage() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const assignRoomForCleaning = async (
+    roomId: string,
+    roomType: string,
+    roomNumber: string
+  ) => {
+    const database = getDatabase();
+    const queueRef = ref(database, "housekeepingQueue");
+
+    // Get current queue state
+    const snapshot = await get(queueRef);
+    const queueData = snapshot.val() || { queue: [], assignments: {} };
+
+    if (!queueData.queue?.length) return;
+
+    // Get first housekeeper in queue
+    const housekeeperUid = queueData.queue[0];
+
+    // Move housekeeper to end of queue
+    const newQueue = [...queueData.queue.slice(1), housekeeperUid];
+
+    // Create assignment with initial "assigned" state
+    const assignment: HousekeepingAssignment = {
+      housekeeperUid,
+      roomNumber,
+      roomType,
+      status: "assigned", // Initial status
+      assignedAt: Date.now(), // Assignment time
+      startedCleaning: null, // Now TypeScript knows about this field
+    };
+
+    // Update database
+    await set(ref(database, "housekeepingQueue"), {
+      ...queueData,
+      queue: newQueue,
+      assignments: {
+        ...queueData.assignments,
+        [roomId]: assignment,
+      },
+    });
   };
 
   const pendingBookings = bookings.filter((b) => b.status === "pending");
