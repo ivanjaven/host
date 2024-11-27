@@ -12,7 +12,8 @@ export function useHousekeepingQueue() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
 
     const database = getDatabase();
     const queueRef = ref(database, "housekeepingQueue");
@@ -21,7 +22,9 @@ export function useHousekeepingQueue() {
       const data = snapshot.val() as HousekeepingQueue;
       if (data) {
         setAssignments(data.assignments || {});
-        const position = data.queue?.indexOf(auth.currentUser.uid) ?? -1;
+        // Store currentUser.uid in a variable to ensure it doesn't change
+        const uid = currentUser.uid;
+        const position = data.queue?.indexOf(uid) ?? -1;
         setQueuePosition(position);
       }
       setLoading(false);
