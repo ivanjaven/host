@@ -17,11 +17,7 @@ export default function DashboardPage() {
             Hotel performance overview and insights
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <button className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-dark transition-colors">
-            Generate Report
-          </button>
-        </div>
+        <div className="flex items-center gap-4"></div>
       </div>
 
       {/* Stats Overview */}
