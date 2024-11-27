@@ -109,7 +109,7 @@ export function BookingTable({
               <td className="px-6 py-4">
                 <div>
                   <span className="text-xs font-medium text-gray-900">
-                    ₱{booking.totalAmount.toLocaleString()}
+                    ₱{booking.finalTotal.toLocaleString()}
                   </span>
                   <span className="text-[11px] text-gray-500 block mt-0.5">
                     Paid

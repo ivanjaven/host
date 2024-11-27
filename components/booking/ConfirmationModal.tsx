@@ -176,7 +176,7 @@ export function ConfirmationModal({
             <div>
               <p className="text-gray-500">Amount:</p>
               <p className="font-medium text-gray-900 mt-1">
-                ₱{booking.totalAmount.toLocaleString()}
+                ₱{booking.finalTotal.toLocaleString()}
               </p>
             </div>
             {actionType === "checkout" && (

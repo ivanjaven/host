@@ -5,6 +5,7 @@ export type BookingStatus = "pending" | "active" | "checked_out";
 export type PaymentStatus = "pending" | "paid" | "refunded" | "cancelled";
 
 export interface Booking {
+  finalTotal: any;
   id: string;
   referenceNumber: string;
   roomId: string;

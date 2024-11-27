@@ -89,7 +89,7 @@ export function PricingSummary({
       <div className="space-y-3">
         <PriceRow
           label="Room Rate"
-          amount={room.price}
+          amount={totalPrice}
           subtext={`₱${room.price.toLocaleString()} × ${numberOfNights} night${
             numberOfNights !== 1 ? "s" : ""
           }`}
