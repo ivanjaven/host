@@ -1,8 +1,8 @@
 // components/dashboard/HousekeepingStatus.tsx
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+// import { collection, getDocs, query, where } from "firebase/firestore";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { db } from "@/lib/firebase";
+// import { db } from "@/lib/firebase";
 
 export function HousekeepingStatus() {
   const [housekeepingData, setHousekeepingData] = useState<{
@@ -22,13 +22,13 @@ export function HousekeepingStatus() {
     const fetchHousekeepingStatus = async () => {
       try {
         // Get active housekeepers
-        const usersRef = collection(db, "users");
-        const housekeepersQuery = query(
-          usersRef,
-          where("role", "==", "housekeeper"),
-          where("status", "==", "active")
-        );
-        const housekeepersSnapshot = await getDocs(housekeepersQuery);
+        // const usersRef = collection(db, "users");
+        // const housekeepersQuery = query(
+        //   usersRef,
+        //   where("role", "==", "housekeeper"),
+        //   where("status", "==", "active")
+        // );
+        // const housekeepersSnapshot = await getDocs(housekeepersQuery);
 
         // Subscribe to realtime housekeeping data
         const database = getDatabase();
