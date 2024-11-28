@@ -1,8 +1,8 @@
 // components/dashboard/HousekeepingStatus.tsx
 import { useState, useEffect } from "react";
-// import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { getDatabase, ref, onValue } from "firebase/database";
-// import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 
 export function HousekeepingStatus() {
   const [housekeepingData, setHousekeepingData] = useState<{
@@ -21,16 +21,16 @@ export function HousekeepingStatus() {
   useEffect(() => {
     const fetchHousekeepingStatus = async () => {
       try {
-        // Get active housekeepers
-        // const usersRef = collection(db, "users");
-        // const housekeepersQuery = query(
-        //   usersRef,
-        //   where("role", "==", "housekeeper"),
-        //   where("status", "==", "active")
-        // );
-        // const housekeepersSnapshot = await getDocs(housekeepersQuery);
+        const usersRef = collection(db, "users");
+        const q = query(
+          usersRef,
+          where("role", "==", "housekeeper"),
+          where("status", "==", "active"),
+          where("archived", "==", false)
+        );
 
-        // Subscribe to realtime housekeeping data
+        const housekeepersSnapshot = await getDocs(q);
+
         const database = getDatabase();
         const queueRef = ref(database, "housekeepingQueue");
 
@@ -39,7 +39,7 @@ export function HousekeepingStatus() {
           const assignments = queueData.assignments || {};
 
           const stats = {
-            activeCleaners: queueData.queue?.length || 0,
+            activeCleaners: housekeepersSnapshot.size,
             roomsInQueue: Object.values(assignments).filter(
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (a: any) => a.status === "assigned"

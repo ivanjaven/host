@@ -19,18 +19,18 @@ interface RoomWithStatus extends Room {
   updatedBy?: string;
 }
 
-interface HousekeeperQueueData {
+interface Assignment {
+  housekeeperUid: string;
+  roomNumber: string;
+  roomType: string;
+  status: "assigned" | "cleaning" | "completed";
+  assignedAt: number;
+  completedAt?: number;
+}
+
+interface HousekeepingQueue {
   queue: string[];
-  assignments: {
-    [roomId: string]: {
-      housekeeperUid: string;
-      roomNumber: string;
-      roomType: string;
-      status: "assigned" | "cleaning" | "completed";
-      assignedAt: number;
-      completedAt?: number;
-    };
-  };
+  assignments: Record<string, Assignment>;
 }
 
 interface Housekeeper {
@@ -51,13 +51,12 @@ export default function AdminView() {
   const [selectedRoom, setSelectedRoom] = useState<RoomWithStatus | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [queueData, setQueueData] = useState<HousekeeperQueueData>({
+  const [queueData, setQueueData] = useState<HousekeepingQueue>({
     queue: [],
     assignments: {},
   });
   const [housekeepers, setHousekeepers] = useState<Housekeeper[]>([]);
 
-  // Fetch housekeepers
   useEffect(() => {
     const fetchHousekeepers = async () => {
       try {
@@ -75,40 +74,47 @@ export default function AdminView() {
         setHousekeepers(housekeepersData);
       } catch (error) {
         console.error("Error fetching housekeepers:", error);
+        setError("Failed to load housekeepers");
       }
     };
 
     fetchHousekeepers();
   }, []);
 
-  // Subscribe to queue updates
   useEffect(() => {
     const database = getDatabase();
     const queueRef = ref(database, "housekeepingQueue");
 
-    const unsubscribe = onValue(queueRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setQueueData(data);
+    const unsubscribe = onValue(
+      queueRef,
+      (snapshot) => {
+        try {
+          const data = snapshot.val() || { queue: [], assignments: {} };
+          setQueueData(data);
+        } catch (error) {
+          console.error("Error fetching queue data:", error);
+          setError("Failed to load housekeeping queue");
+        }
+      },
+      (error) => {
+        console.error("Queue subscription error:", error);
+        setError("Failed to subscribe to housekeeping updates");
       }
-    });
+    );
 
     return () => unsubscribe();
   }, []);
 
   const fetchRooms = async () => {
     try {
-      // Get room statuses from Realtime Database
       const database = getDatabase();
       const statusesRef = ref(database, "roomStatuses");
       const statusSnapshot = await get(statusesRef);
-      const roomStatuses = statusSnapshot.val();
+      const roomStatuses = statusSnapshot.val() || {};
 
-      // Get all rooms from Firestore
       const roomsRef = collection(db, "rooms");
       const snapshot = await getDocs(roomsRef);
 
-      // Combine room data with housekeeping status
       const roomsData = snapshot.docs.map((doc) => {
         const data = doc.data();
         const roomKey = `${data.type}${data.number}`;
@@ -154,7 +160,6 @@ export default function AdminView() {
         updatedBy: auth.currentUser?.uid || "unknown",
       });
 
-      // Create history entry
       const historyRef = ref(
         database,
         `housekeepingHistory/${room.type}${room.number}/${Date.now()}`
@@ -165,7 +170,6 @@ export default function AdminView() {
         updatedBy: auth.currentUser?.uid || "unknown",
       });
 
-      // Refresh rooms data
       await fetchRooms();
       setIsUpdateModalOpen(false);
     } catch (error) {
@@ -176,7 +180,6 @@ export default function AdminView() {
     }
   };
 
-  // Calculate stats
   const stats = {
     total: rooms.length,
     clean: rooms.filter((room) => room.housekeepingStatus === "Clean").length,
@@ -185,7 +188,6 @@ export default function AdminView() {
     dirty: rooms.filter((room) => room.housekeepingStatus === "Dirty").length,
   };
 
-  // Filter rooms based on status and search
   const filteredRooms = rooms.filter((room) => {
     const matchesStatus =
       statusFilter === "All" || room.housekeepingStatus === statusFilter;
@@ -207,7 +209,6 @@ export default function AdminView() {
 
   return (
     <div className="p-6 lg:p-10 space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Housekeeping</h1>
@@ -217,10 +218,8 @@ export default function AdminView() {
         </div>
       </div>
 
-      {/* Stats Overview */}
       <HousekeepingStats stats={stats} />
 
-      {/* Queue Overview */}
       <div className="bg-white rounded-xl border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-gray-900">Cleaning Queue</h2>
@@ -234,12 +233,13 @@ export default function AdminView() {
             const housekeeper = housekeepers.find((h) => h.uid === uid);
             if (!housekeeper) return null;
 
-            const currentAssignment = Object.entries(
-              queueData.assignments
-            ).find(
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-              ([_, a]) => a.housekeeperUid === uid && a.status !== "completed"
-            );
+            const currentAssignment = queueData.assignments
+              ? Object.entries(queueData.assignments).find(
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  ([_, a]) =>
+                    a.housekeeperUid === uid && a.status !== "completed"
+                )
+              : null;
 
             return (
               <div key={uid} className="p-4 rounded-lg border border-gray-200">
@@ -259,7 +259,7 @@ export default function AdminView() {
                   />
                 </div>
 
-                {currentAssignment && (
+                {currentAssignment && currentAssignment[1] && (
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-900">Currently cleaning:</p>
                     <p className="text-sm font-medium text-gray-900 mt-1">
@@ -280,7 +280,6 @@ export default function AdminView() {
         </div>
       </div>
 
-      {/* Filters */}
       <HousekeepingFilters
         statusFilter={statusFilter}
         onStatusChange={setStatusFilter}
@@ -292,7 +291,6 @@ export default function AdminView() {
         <div className="bg-red-50 text-red-600 p-4 rounded-lg">{error}</div>
       )}
 
-      {/* Room Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredRooms.map((room) => (
           <HousekeepingCard
@@ -312,13 +310,11 @@ export default function AdminView() {
         </div>
       )}
 
-      {/* History Section */}
       <div className="bg-white rounded-xl border border-gray-100 p-6">
         <h2 className="text-lg font-bold text-gray-900 mb-4">Recent Updates</h2>
         <HousekeepingHistory rooms={rooms} />
       </div>
 
-      {/* Update Status Modal */}
       {isUpdateModalOpen && selectedRoom && (
         <UpdateStatusModal
           room={selectedRoom}
