@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase";
 import { User } from "@/types/user";
 import { UserTable } from "@/components/users/UserTable";
 import Loading from "@/components/ui/loading";
+import { useAuthProtection } from "@/hooks/useAuth";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -34,6 +35,10 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const { userRole } = useAuthProtection(["admin"]);
+
+  if (!userRole) return null;
 
   if (loading) {
     return (

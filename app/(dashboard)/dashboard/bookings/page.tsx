@@ -21,6 +21,7 @@ import Loading from "@/components/ui/loading";
 import { startOfDay, startOfWeek, startOfMonth } from "date-fns";
 import { getDatabase, ref, get, set, update } from "firebase/database";
 import { HousekeepingAssignment } from "@/types/housekeeping";
+import { useAuthProtection } from "@/hooks/useAuth";
 
 type TimeFilter = "day" | "week" | "month" | "all";
 
@@ -58,6 +59,10 @@ export default function BookingsPage() {
         return null;
     }
   };
+
+  const { userRole } = useAuthProtection(["admin", "receptionist"]);
+
+  if (!userRole) return null;
 
   const fetchBookings = async () => {
     try {

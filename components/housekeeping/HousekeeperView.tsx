@@ -1,4 +1,6 @@
 // components/housekeeping/HousekeeperView.tsx
+"use client";
+import { useEffect } from "react";
 import { Room } from "@/types/room";
 import { useHousekeepingQueue } from "@/hooks/useHousekeepingQueue";
 import { HousekeepingCard } from "./HouseKeepingCard";
@@ -6,8 +8,7 @@ import { HousekeepingHistory } from "./HousekeepingHistory";
 import Loading from "../ui/loading";
 import { getDatabase, onValue, ref, update } from "firebase/database";
 import { auth } from "@/lib/firebase";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { redirect } from "next/navigation";
 
 interface HousekeeperViewProps {
   rooms: Room[];
@@ -15,8 +16,6 @@ interface HousekeeperViewProps {
 
 export function HousekeeperView({ rooms }: HousekeeperViewProps) {
   const { assignments, queuePosition, loading } = useHousekeepingQueue();
-
-  const router = useRouter();
 
   useEffect(() => {
     const database = getDatabase();
@@ -26,13 +25,13 @@ export function HousekeeperView({ rooms }: HousekeeperViewProps) {
         const data = snapshot.val() || { queue: [], assignments: {} };
 
         if (auth.currentUser && !data.queue.includes(auth.currentUser.uid)) {
-          router.push("/dashboard");
+          redirect("/dashboard");
         }
       }
     );
 
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   const updateAssignmentStatus = async (
     roomId: string,

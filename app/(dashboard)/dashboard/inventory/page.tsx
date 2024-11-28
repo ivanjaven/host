@@ -14,6 +14,7 @@ import type {
   Inventory,
   InventoryItem,
 } from "@/types/inventory";
+import { useAuthProtection } from "@/hooks/useAuth";
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<Inventory | null>(null);
@@ -42,6 +43,10 @@ export default function InventoryPage() {
       setLoading(false);
     }
   }, []);
+
+  const { userRole } = useAuthProtection(["admin", "housekeeper"]);
+
+  if (!userRole) return null;
 
   const getTotalItems = () => {
     if (!inventory) return 0;

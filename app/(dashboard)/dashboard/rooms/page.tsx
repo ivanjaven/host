@@ -7,6 +7,7 @@ import { Room, RoomType } from "@/types/room";
 import { RoomCard } from "@/components/rooms/RoomCard";
 import { SearchBar } from "@/components/rooms/SearchBar";
 import Loading from "@/components/ui/loading";
+import { useAuthProtection } from "@/hooks/useAuth";
 
 export type Filters = {
   type: RoomType | "All";
@@ -121,6 +122,10 @@ export default function RoomsPage() {
   useEffect(() => {
     console.log("Filtered rooms:", filteredRooms);
   }, [filteredRooms]);
+
+  const { userRole } = useAuthProtection(["admin"]);
+
+  if (!userRole) return null;
 
   if (loading) {
     return (

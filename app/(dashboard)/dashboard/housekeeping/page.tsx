@@ -7,17 +7,20 @@ import { Room } from "@/types/room";
 import Loading from "@/components/ui/loading";
 import { HousekeeperView } from "@/components/housekeeping/HousekeeperView";
 import AdminView from "@/components/housekeeping/AdminView";
+import { useAuthProtection } from "@/hooks/useAuth";
 
 export default function HousekeepingPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRoleHouseKeeping, setUserRoleHouseKeeping] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     // Get user role from localStorage (set during login)
     const role = localStorage.getItem("userRole");
-    setUserRole(role);
+    setUserRoleHouseKeeping(role);
   }, []);
 
   useEffect(() => {
@@ -41,6 +44,10 @@ export default function HousekeepingPage() {
     fetchRooms();
   }, []);
 
+  const { userRole } = useAuthProtection(["admin", "housekeeper"]);
+
+  if (!userRole) return null;
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -55,7 +62,7 @@ export default function HousekeepingPage() {
 
   return (
     <div className="p-6 lg:p-10">
-      {userRole === "housekeeper" ? (
+      {userRoleHouseKeeping === "housekeeper" ? (
         <HousekeeperView rooms={rooms} />
       ) : (
         <AdminView />

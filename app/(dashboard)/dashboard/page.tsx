@@ -6,8 +6,12 @@ import { RecentBookings } from "@/components/dashboard/RecentBooking";
 import { RoomStatus } from "@/components/dashboard/RoomStatus";
 import { HousekeepingStatus } from "@/components/dashboard/HousekeepingStatus";
 import { RevenueTrends } from "@/components/dashboard/RevenueTrends";
+import { useAuthProtection } from "@/hooks/useAuth";
 
 export default function DashboardPage() {
+  const { userRole } = useAuthProtection(["admin"]);
+
+  if (!userRole) return null;
   return (
     <div className="p-6 lg:p-10 space-y-8">
       <div className="flex items-center justify-between mb-6">

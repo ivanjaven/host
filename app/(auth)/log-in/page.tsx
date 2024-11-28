@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/(auth)/log-in/page.tsx
 "use client";
 import { useState } from "react";
@@ -29,40 +30,68 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // Sign in with Firebase Auth
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-
-      // Get user document from Firestore
+      // First check user document in Firestore
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("uid", "==", user.uid));
+      const q = query(usersRef, where("email", "==", email));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        throw new Error("User data not found");
+        setError("Invalid email or password");
+        setIsLoading(false);
+        return;
       }
 
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data();
+      const userData = querySnapshot.docs[0].data();
+
+      // Check if account is deactivated before attempting sign in
+      if (userData.archived || userData.status === "inactive") {
+        setError(
+          "This account has been deactivated. Please contact an administrator."
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // If account is active, proceed with sign in
+      await signInWithEmailAndPassword(auth, email, password);
 
       // Update last login
-      await updateDoc(doc(db, "users", userDoc.id), {
+      await updateDoc(doc(db, "users", querySnapshot.docs[0].id), {
         lastLogin: serverTimestamp(),
       });
 
-      // Store user type in localStorage
+      // Store user role
       localStorage.setItem("userRole", userData.role);
+      document.cookie = `userRole=${userData.role}; path=/; max-age=86400; secure; samesite=strict`;
 
-      // Redirect to dashboard
-      router.push("/dashboard");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Role-based redirect
+      switch (userData.role) {
+        case "admin":
+          router.push("/dashboard");
+          break;
+        case "receptionist":
+          router.push("/dashboard/bookings");
+          break;
+        case "housekeeper":
+          router.push("/dashboard/housekeeping");
+          break;
+        default:
+          router.push("/dashboard");
+      }
     } catch (error: any) {
       console.error("Login error:", error);
-      setError(error.message || "Invalid email or password");
+      // Handle specific Firebase auth errors
+      switch (error.code) {
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+          setError("Invalid email or password");
+          break;
+        case "auth/too-many-requests":
+          setError("Too many failed attempts. Please try again later.");
+          break;
+        default:
+          setError(error.message || "An error occurred during login");
+      }
       setIsLoading(false);
     }
   };

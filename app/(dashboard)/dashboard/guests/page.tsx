@@ -6,6 +6,7 @@ import { Guest } from "@/types/guest";
 import { GuestTable } from "@/components/guests/GuestTable";
 import Loading from "@/components/ui/loading";
 import { startOfDay, startOfWeek, startOfMonth } from "date-fns";
+import { useAuthProtection } from "@/hooks/useAuth";
 
 type TimeFilter = "day" | "week" | "month" | "all";
 
@@ -70,6 +71,10 @@ export default function GuestsPage() {
       setLoading(false);
     }
   };
+
+  const { userRole } = useAuthProtection(["admin", "receptionist"]);
+
+  if (!userRole) return null;
 
   if (loading) {
     return (
