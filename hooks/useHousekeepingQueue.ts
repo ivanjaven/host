@@ -81,11 +81,39 @@ export function useHousekeepingQueue() {
     });
   };
 
+  const removeFromQueue = async (uid: string) => {
+    const database = getDatabase();
+    const queueRef = ref(database, "housekeepingQueue");
+
+    const snapshot = await get(queueRef);
+    const data = snapshot.val() as HousekeepingQueue;
+
+    if (!data.queue) return;
+
+    // Remove the user from the queue
+    const newQueue = data.queue.filter((id) => id !== uid);
+
+    // Remove any active assignments for this housekeeper
+    const newAssignments = { ...data.assignments };
+    for (const [roomId, assignment] of Object.entries(newAssignments)) {
+      if (assignment.housekeeperUid === uid) {
+        delete newAssignments[roomId];
+      }
+    }
+
+    // Update the database
+    await update(ref(database), {
+      "housekeepingQueue/queue": newQueue,
+      "housekeepingQueue/assignments": newAssignments,
+    });
+  };
+
   return {
     assignments,
     queuePosition,
     loading,
     assignRoom,
+    removeFromQueue,
     updateAssignmentStatus,
   };
 }

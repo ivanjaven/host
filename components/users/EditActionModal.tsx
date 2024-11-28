@@ -1,16 +1,19 @@
-// components/users/UserActionModal.tsx
+// components/users/EditActionModal.tsx
+
 import { useState } from "react";
-import { User, UserRole } from "@/types/user";
-import Loading from "@/components/ui/loading";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
+import { getDatabase, ref as dbRef, get, update } from "firebase/database";
 import {
+  doc,
+  updateDoc,
+  serverTimestamp,
   collection,
   addDoc,
-  updateDoc,
-  doc,
-  serverTimestamp,
 } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import type { HousekeepingQueue } from "@/types/housekeeping";
+import { User, UserRole } from "@/types/user";
+import Loading from "@/components/ui/loading";
 
 interface UserFormData {
   email: string;
@@ -20,7 +23,7 @@ interface UserFormData {
   role: UserRole;
 }
 
-interface UserActionModalProps {
+interface EditActionModalProps {
   user?: User;
   type: "add" | "edit";
   onClose: () => void;
@@ -34,7 +37,7 @@ export function EditActionModal({
   type,
   onClose,
   onSuccess,
-}: UserActionModalProps) {
+}: EditActionModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState<UserFormData>({
@@ -71,27 +74,87 @@ export function EditActionModal({
           created_at: serverTimestamp(),
           updated_at: serverTimestamp(),
         });
-      } else {
-        // Update existing user
-        if (!user?.id) throw new Error("User ID not found");
 
+        // If new user is a housekeeper, add to queue
+        if (formData.role === "housekeeper") {
+          const database = getDatabase();
+          const queueRef = dbRef(database, "housekeepingQueue");
+
+          const snapshot = await get(queueRef);
+          const queueData = snapshot.val() as HousekeepingQueue;
+
+          const newQueue = [
+            ...(queueData?.queue || []),
+            userCredential.user.uid,
+          ];
+
+          await update(dbRef(database), {
+            "housekeepingQueue/queue": newQueue,
+          });
+        }
+      } else if (type === "edit" && user) {
+        // Update user in Firestore
         await updateDoc(doc(db, "users", user.id), {
           firstName: formData.firstName,
           lastName: formData.lastName,
           role: formData.role,
           updated_at: serverTimestamp(),
         });
+
+        // Handle housekeeping queue updates
+        const database = getDatabase();
+
+        // Removing from queue if changing from housekeeper
+        if (user.role === "housekeeper" && formData.role !== "housekeeper") {
+          const queueRef = dbRef(database, "housekeepingQueue");
+          const snapshot = await get(queueRef);
+          const queueData = snapshot.val() as HousekeepingQueue;
+
+          if (queueData?.queue?.includes(user.uid)) {
+            const newQueue = queueData.queue.filter((id) => id !== user.uid);
+
+            const newAssignments = { ...queueData.assignments };
+            for (const [roomId, assignment] of Object.entries(newAssignments)) {
+              if (assignment.housekeeperUid === user.uid) {
+                delete newAssignments[roomId];
+              }
+            }
+
+            await update(dbRef(database), {
+              "housekeepingQueue/queue": newQueue,
+              "housekeepingQueue/assignments": newAssignments,
+            });
+          }
+        }
+
+        // Adding to queue if changing to housekeeper
+        else if (
+          user.role !== "housekeeper" &&
+          formData.role === "housekeeper"
+        ) {
+          const queueRef = dbRef(database, "housekeepingQueue");
+          const snapshot = await get(queueRef);
+          const queueData = snapshot.val() as HousekeepingQueue;
+
+          if (!queueData?.queue?.includes(user.uid)) {
+            const newQueue = [...(queueData?.queue || []), user.uid];
+
+            await update(dbRef(database), {
+              "housekeepingQueue/queue": newQueue,
+            });
+          }
+        }
       }
 
       onSuccess();
       onClose();
-    } catch (err) {
-      console.error("User action error:", err);
-      setError(err instanceof Error ? err.message : "An error occurred");
+    } catch (error) {
+      console.error("Error handling user:", error);
+      setError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
       setIsLoading(false);
     }
   };
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">

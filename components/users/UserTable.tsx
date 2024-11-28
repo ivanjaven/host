@@ -7,6 +7,8 @@ import { db } from "@/lib/firebase";
 import { doc } from "firebase/firestore";
 import { EditActionModal } from "./EditActionModal";
 import { DeleteUserModal } from "./DeleteActionModal";
+import { get, getDatabase, ref, update } from "firebase/database";
+import { HousekeepingQueue } from "@/types/housekeeping";
 
 interface UserTableProps {
   users: User[];
@@ -36,6 +38,33 @@ export function UserTable({ users, onRefresh }: UserTableProps) {
     setIsDeleting(true);
 
     try {
+      // If the user is a housekeeper, remove from queue
+      if (userToDelete.role === "housekeeper") {
+        const database = getDatabase();
+        const queueRef = ref(database, "housekeepingQueue");
+
+        const snapshot = await get(queueRef);
+        const data = snapshot.val() as HousekeepingQueue;
+
+        if (data.queue?.includes(userToDelete.uid)) {
+          const newQueue = data.queue.filter((id) => id !== userToDelete.uid);
+
+          // Remove assignments
+          const newAssignments = { ...data.assignments };
+          for (const [roomId, assignment] of Object.entries(newAssignments)) {
+            if (assignment.housekeeperUid === userToDelete.uid) {
+              delete newAssignments[roomId];
+            }
+          }
+
+          await update(ref(database), {
+            "housekeepingQueue/queue": newQueue,
+            "housekeepingQueue/assignments": newAssignments,
+          });
+        }
+      }
+
+      // Existing delete logic
       await updateDoc(doc(db, "users", userToDelete.id), {
         archived: true,
         status: "inactive",

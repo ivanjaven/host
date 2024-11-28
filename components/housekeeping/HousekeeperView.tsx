@@ -4,8 +4,10 @@ import { useHousekeepingQueue } from "@/hooks/useHousekeepingQueue";
 import { HousekeepingCard } from "./HouseKeepingCard";
 import { HousekeepingHistory } from "./HousekeepingHistory";
 import Loading from "../ui/loading";
-import { getDatabase, ref, update } from "firebase/database";
+import { getDatabase, onValue, ref, update } from "firebase/database";
 import { auth } from "@/lib/firebase";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
 
 interface HousekeeperViewProps {
   rooms: Room[];
@@ -13,6 +15,24 @@ interface HousekeeperViewProps {
 
 export function HousekeeperView({ rooms }: HousekeeperViewProps) {
   const { assignments, queuePosition, loading } = useHousekeepingQueue();
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const database = getDatabase();
+    const unsubscribe = onValue(
+      ref(database, "housekeepingQueue"),
+      (snapshot) => {
+        const data = snapshot.val() || { queue: [], assignments: {} };
+
+        if (auth.currentUser && !data.queue.includes(auth.currentUser.uid)) {
+          router.push("/dashboard");
+        }
+      }
+    );
+
+    return () => unsubscribe();
+  }, [router]);
 
   const updateAssignmentStatus = async (
     roomId: string,
